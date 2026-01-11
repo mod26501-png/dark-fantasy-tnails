@@ -9,19 +9,19 @@ import Loader from './components/Loader';
 const initialRelics: Relic[] = [
   {
     title: "The Sunken Kingdom",
-    image: "https://relicabackend.blob.core.windows.net/thumbnails/relics_The_Sunken_Kingdom_1.png",
+    image: "https://placehold.co/600x400/0b0b0f/e8e6e3?text=The+Sunken+Kingdom",
     prompt: "The Sunken Kingdom, ancient ruins, glowing runes, deep sea, high fantasy",
     tags: ["ancient", "ruins", "glowing", "runes", "deep sea"],
   },
   {
     title: "The Obsidian Blade",
-    image: "https://relicabackend.blob.core.windows.net/thumbnails/relics_The_Obsidian_Blade_1.png",
+    image: "https://placehold.co/600x400/0b0b0f/e8e6e3?text=The+Obsidian+Blade",
     prompt: "The Obsidian Blade, dark fantasy, sword, volcanic glass, intricate design",
     tags: ["dark fantasy", "sword", "volcanic", "glass", "intricate"],
   },
   {
     title: "The Astral Orrery",
-    image: "https://relicabackend.blob.core.windows.net/thumbnails/relics_The_Astral_Orrery_1.png",
+    image: "https://placehold.co/600x400/0b0b0f/e8e6e3?text=The+Astral+Orrery",
     prompt: "The Astral Orrery, celestial, mechanical, planets, stars, magic",
     tags: ["celestial", "mechanical", "planets", "stars", "magic"],
   },
