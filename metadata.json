@@ -1,0 +1,5 @@
+{
+  "name": "Dark Fantasy Thumbnails — Relic Series Generator",
+  "description": "An application to generate a complete 'Relic Series' prompt card set for dark fantasy thumbnails using the Gemini API. Input a theme and get back a full set of prompts and AI-generated cinematic images.",
+  "requestFramePermissions": []
+}

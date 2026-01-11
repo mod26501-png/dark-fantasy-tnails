@@ -1,3 +1,6 @@
 {
-  "IDX.agenticWorkspace": true
+  "IDX.agenticWorkspace": true,
+  "css.format.braceStyle": "expand",
+  "css.format.maxPreserveNewLines": 3,
+  "css.format.spaceAroundSelectorSeparator": true
 }
