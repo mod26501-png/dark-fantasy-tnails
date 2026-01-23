@@ -26,7 +26,8 @@
       "firebase_update_environment",
       "firebase_init",
       "firebase_get_security_rules",
-      "firebase_read_resources"
+      "firebase_read_resources",
+      "firestore_query_collection"
     ]
   }
 }
