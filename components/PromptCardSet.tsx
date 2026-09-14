@@ -50,13 +50,13 @@ const Card: React.FC<
           ))}
         </div>
         <div className="actions flex gap-2 flex-wrap mt-2 no-print">
-          <button
+          <button type="button"
             onClick={() => setShowPrompt(!showPrompt)}
             className="btn secondary bg-transparent border border-[#242830] text-[#e8e6e3] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#242830] transition-colors"
           >
             {showPrompt ? "Hide Details" : "Show Details"}
           </button>
-          <button
+          <button type="button"
             onClick={handleCopy}
             className="btn bg-gradient-to-r from-[#8d1a1a] to-[#c26b3a] text-white px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 transition-opacity"
           >
@@ -91,7 +91,7 @@ const Lightbox: React.FC<{ src: string; onClose: () => void }> = (
         className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg border border-[#242830]"
         onClick={(e) => e.stopPropagation()}
       />
-      <button
+      <button type="button"
         onClick={onClose}
         className="lightbox-close absolute top-4 right-4 bg-black/50 text-white px-4 py-2 rounded-lg border border-[#242830] hover:bg-black/80 transition-colors"
         aria-label="Close lightbox"
@@ -124,7 +124,7 @@ export const PromptCardSet: React.FC<
   };
 
   const handlePrint = () => {
-    window.print();
+    globalThis.window?.print();
   };
 
   return (
@@ -163,8 +163,7 @@ export const PromptCardSet: React.FC<
       <div className="printable-area">
         <main className="wrap max-w-full mx-auto py-6">
           <div className="toolbar no-print flex gap-3 flex-wrap items-center mb-6">
-            <button
-              onClick={onStartOver}
+            <button`n              type="button"`n              onClick={onStartOver}
               className="btn bg-gradient-to-r from-[#8d1a1a] to-[#c26b3a] text-white px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 transition-opacity"
             >
               ✨ Generate New Series
@@ -183,13 +182,13 @@ export const PromptCardSet: React.FC<
               {allTags.map((tag) => <option key={tag} value={tag}>{tag}
               </option>)}
             </select>
-            <button
+            <button type="button"
               onClick={handleResetFilters}
               className="btn secondary bg-transparent border border-[#242830] text-[#e8e6e3] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#242830] transition-colors"
             >
               Reset
             </button>
-            <button
+            <button type="button"
               onClick={handlePrint}
               className="btn secondary bg-transparent border border-[#242830] text-[#e8e6e3] px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#242830] transition-colors"
             >

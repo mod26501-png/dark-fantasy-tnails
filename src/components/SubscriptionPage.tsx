@@ -16,7 +16,7 @@ const SubscriptionPage: React.FC = () => {
             <li>10 Relic Generations per month</li>
             <li>Limited access to pre-existing relics</li>
           </ul>
-          <button className="cta-button">Current Plan</button>
+          <button type="button" className="cta-button">Current Plan</button>
         </div>
         <div className="plan recommended">
           <h2>Pro</h2>
@@ -27,7 +27,7 @@ const SubscriptionPage: React.FC = () => {
             <li>Access to Negative Prompts</li>
             <li>Receive Remix Suggestions</li>
           </ul>
-          <button className="cta-button">Upgrade to Pro</button>
+          <button type="button" className="cta-button">Upgrade to Pro</button>
         </div>
         <div className="plan">
           <h2>Enterprise</h2>
@@ -38,7 +38,7 @@ const SubscriptionPage: React.FC = () => {
             <li>Custom Integrations</li>
             <li>Dedicated Account Manager</li>
           </ul>
-          <button className="cta-button">Contact Sales</button>
+          <button type="button" className="cta-button">Contact Sales</button>
         </div>
       </div>
     </div>
