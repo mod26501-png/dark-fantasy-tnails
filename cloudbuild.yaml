@@ -1,0 +1,28 @@
+steps:
+  # Step 1: Build the image using Google Cloud Buildpacks
+  - name: "gcr.io/k8s-skaffold/pack"
+    args:
+      - "build"
+      - "gcr.io/$PROJECT_ID/dark-fantasy-tnails:$COMMIT_SHA"
+      - "--builder=gcr.io/buildpacks/builder:v1"
+      - "--path=."
+
+  # Step 2: Push the image to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "gcr.io/$PROJECT_ID/dark-fantasy-tnails:$COMMIT_SHA"
+
+  # Step 3: Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "dark-fantasy-tnails-git"
+      - "--image=gcr.io/$PROJECT_ID/dark-fantasy-tnails:$COMMIT_SHA"
+      - "--region=us-east4"
+      - "--platform=managed"
+
+images:
+  - "gcr.io/$PROJECT_ID/dark-fantasy-tnails:$COMMIT_SHA"
