@@ -14,7 +14,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.1",
-    "swiper": "^11.0.5"
+    "swiper": "^14.2.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.5",
