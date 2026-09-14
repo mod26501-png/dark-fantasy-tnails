@@ -1,11 +1,11 @@
-import React from 'react';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import 'swiper/css';
-import 'swiper/css/navigation';
-import 'swiper/css/pagination';
-import { Navigation, Pagination } from 'swiper/modules';
-import RelicCard from './RelicCard';
-import { Relic } from '../types';
+import React from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
+import { Navigation, Pagination } from "swiper/modules";
+import RelicCard from "./RelicCard";
+import { Relic } from "../types";
 
 interface RelicCarouselProps {
   relics: Relic[];
@@ -28,13 +28,13 @@ const RelicCarousel: React.FC<RelicCarouselProps> = ({ relics }) => {
           // when window width is >= 768px
           768: {
             slidesPerView: 2,
-            spaceBetween: 30
+            spaceBetween: 30,
           },
           // when window width is >= 1024px
           1024: {
             slidesPerView: 3,
-            spaceBetween: 40
-          }
+            spaceBetween: 40,
+          },
         }}
       >
         {relics.map((relic) => (

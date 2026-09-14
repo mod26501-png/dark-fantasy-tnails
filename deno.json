@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  },
+  "fmt": {
+    "exclude": [
+      "package-lock.json",
+      "node_modules",
+      "dist",
+      "build"
+    ]
+  },
+  "lint": {
+    "exclude": [
+      "package-lock.json",
+      "node_modules",
+      "dist",
+      "build"
+    ]
+  }
+}

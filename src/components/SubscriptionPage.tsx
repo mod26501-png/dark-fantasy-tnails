@@ -1,6 +1,5 @@
-
-import React from 'react';
-import './SubscriptionPage.css';
+import React from "react";
+import "./SubscriptionPage.css";
 
 const SubscriptionPage: React.FC = () => {
   return (
