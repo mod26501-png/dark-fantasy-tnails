@@ -19,6 +19,12 @@ jobs:
         with:
           deno-version: v2.x
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
       - name: Verify formatting
         run: deno fmt --check
 
@@ -26,7 +32,7 @@ jobs:
         run: deno lint
 
       - name: Install dependencies
-        run: deno install
+        run: npm ci
 
       - name: Run tests
-        run: deno test -A
+        run: npx vitest run --config src/test/vite.config.test.ts
