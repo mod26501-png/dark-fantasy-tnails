@@ -35,4 +35,4 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npx vitest run --config src/test/vite.config.test.ts
+        run: npx vitest run
