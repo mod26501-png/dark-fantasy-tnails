@@ -19,7 +19,7 @@
     "vite-node": "^6.0.0"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^14.1.2",
     "@types/node": "^26.5.1",
     "@types/react": "^18.2.43",
