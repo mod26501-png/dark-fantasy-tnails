@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import SubscriptionPage from "./SubscriptionPage";
 import "@testing-library/jest-dom";

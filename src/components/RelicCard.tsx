@@ -33,15 +33,22 @@ const RelicCard: React.FC<RelicCardProps> = ({ relic }) => {
         </div>
         <div className="flex justify-between items-center">
           <button
+            type="button"
             onClick={handleCopyPrompt}
             className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-full text-sm transition-colors duration-300"
           >
             Copy Prompt
           </button>
-          <button className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-full text-sm transition-colors duration-300">
+          <button
+            type="button"
+            className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-full text-sm transition-colors duration-300"
+          >
             Remix
           </button>
-          <button className="text-gray-400 hover:text-white transition-colors duration-300">
+          <button
+            type="button"
+            className="text-gray-400 hover:text-white transition-colors duration-300"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6"

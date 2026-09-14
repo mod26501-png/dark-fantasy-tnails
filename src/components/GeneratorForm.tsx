@@ -1,10 +1,11 @@
 import React, { useState } from "react";
+import { Relic } from "../types";
 import toast from "react-hot-toast";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 interface GeneratorFormProps {
-  setRelics: (relics: any[]) => void;
+  setRelics: (relics: Relic[]) => void;
   setIsLoading: (isLoading: boolean) => void;
   isLoading: boolean;
 }
@@ -100,10 +101,11 @@ const GeneratorForm: React.FC<GeneratorFormProps> = (
       const data = await response.json();
       setRelics(data.cards);
       toast.success("New relics have been forged!");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to generate relics:", error);
       toast.error(
-        error.message || "Failed to generate relics. Please try again.",
+        (error instanceof Error ? error.message : null) ||
+          "Failed to generate relics. Please try again.",
       );
     } finally {
       setIsLoading(false);
