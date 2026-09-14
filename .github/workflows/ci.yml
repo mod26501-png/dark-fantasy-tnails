@@ -18,6 +18,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Debug - show commit and files
+        run: |
+          echo "Commit SHA: $GITHUB_SHA"
+          echo "Ref: $GITHUB_REF"
+          ls -la setup.ts 2>/dev/null && echo "setup.ts EXISTS" || echo "setup.ts MISSING"
+          cat .github/workflows/ci.yml | grep "vitest" || echo "No vitest in ci.yml"
+          ls .github/workflows/
+
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
