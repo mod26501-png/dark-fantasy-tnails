@@ -8,6 +8,8 @@ import { backupSeriesToDrive, uploadFileToDrive, urlToBlob } from '../services/d
 import { ImageDiagnosticOverlay } from './ImageDiagnosticOverlay';
 import { HoloFoilCard } from './HoloFoilCard';
 import { DarkSealsBar } from './DarkSealsBar';
+import { AncientScrollModal } from './AncientScrollModal';
+import { generateSingleRelicScrollPdf } from '../services/ancientScrollPdfService';
 import { playBladeClang, playRuneHum } from '../src/utils/soundEffects';
 import type { GeneratedData, PromptCard as PromptCardType } from '../types';
 
@@ -108,6 +110,19 @@ const Card: React.FC<{
   };
 
   const [isUploadingToDrive, setIsUploadingToDrive] = useState(false);
+  const [isGeneratingScribePdf, setIsGeneratingScribePdf] = useState(false);
+
+  const handleDownloadScribePdf = async () => {
+    if (isGeneratingScribePdf) return;
+    setIsGeneratingScribePdf(true);
+    try {
+      await generateSingleRelicScrollPdf(currentCard, archetype);
+    } catch (err) {
+      console.error('Failed to generate Scribe PDF:', err);
+    } finally {
+      setIsGeneratingScribePdf(false);
+    }
+  };
   const [driveUploadSuccess, setDriveUploadSuccess] = useState(false);
   const [driveLink, setDriveLink] = useState<string | null>(null);
 
@@ -437,6 +452,17 @@ const Card: React.FC<{
           </button>
 
           <button
+            id={`scroll-pdf-btn-${(currentCard.title || 'relic').replace(/\s+/g, '-').toLowerCase()}`}
+            onClick={handleDownloadScribePdf}
+            disabled={isGeneratingScribePdf}
+            title="Download this relic scripture as an authentic, centered Ancient Scroll PDF"
+            className="flex-1 py-2.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border border-[#8d5b2d]/50 bg-[#1c140e] hover:bg-[#2e1d13] text-[#f5ebd0] hover:text-[#ffe6a8] shadow-sm cursor-pointer disabled:opacity-50"
+          >
+            <span>📜</span>
+            <span>{isGeneratingScribePdf ? 'TRANSCRIBING...' : 'SCRIBE PDF'}</span>
+          </button>
+
+          <button
             id={`export-json-btn-${(currentCard.title || 'relic').replace(/\s+/g, '-').toLowerCase()}`}
             onClick={handleExportJson}
             title="Export relic lore and prompt details as downloadable JSON file"
@@ -519,6 +545,7 @@ export const PromptCardSet: React.FC<{ data: GeneratedData, onStartOver: () => v
       bannerDiagnostic?.hasError === true;
 
     const [isBackingUpDrive, setIsBackingUpDrive] = useState(false);
+    const [isAncientScrollModalOpen, setIsAncientScrollModalOpen] = useState(false);
     const [driveBackupStatus, setDriveBackupStatus] = useState<string | null>(null);
     const [driveFolderLink, setDriveFolderLink] = useState<string | null>(null);
 
@@ -757,6 +784,15 @@ export const PromptCardSet: React.FC<{ data: GeneratedData, onStartOver: () => v
                     >
                         <span className="text-sm">▲</span>
                         <span>{isBackingUpDrive ? 'SAVING TO DRIVE...' : 'SAVE TO GOOGLE DRIVE'}</span>
+                    </button>
+                    <button
+                        id="export-ancient-scroll-pdf-btn"
+                        onClick={() => setIsAncientScrollModalOpen(true)}
+                        className="bg-gradient-to-r from-[#2a170e] via-[#3d2315] to-[#2a170e] hover:from-[#4a2b1a] hover:to-[#4a2b1a] text-[#f5ebd0] hover:text-white px-4 py-3 rounded-xl text-xs font-black transition-all border border-[#f5c278]/50 shadow-lg flex items-center gap-2 hover-blood cursor-pointer"
+                        title="Unfurl and download the series lore scripture as an Ancient Scroll PDF with gothic formatting and parchment textures"
+                    >
+                        <span>📜</span>
+                        <span>ANCIENT SCROLL PDF</span>
                     </button>
                     <button onClick={() => window.print()} className="px-5 py-3 rounded-xl border border-[#242830] text-xs font-bold hover:bg-[#00d2ff] hover:text-black hover:border-transparent transition-all">EXPORT PDF</button>
                 </div>

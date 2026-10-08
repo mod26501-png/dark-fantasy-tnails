@@ -21,6 +21,7 @@
     "express": "^5.2.1",
     "firebase": "^12.17.1",
     "firebase-admin": "^14.2.0",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.8.0",
     "motion": "^12.38.0",
     "pg": "^8.23.0",

@@ -6,6 +6,7 @@ import { subscribeToUserCodex } from "../services/firebaseService";
 import { getAllRelicsIDB, saveRelicIDB } from "../services/idbStorage";
 import { playBladeClang } from "../src/utils/soundEffects";
 import { HoloFoilCard } from '../components/HoloFoilCard';
+import { generateSingleRelicScrollPdf } from '../services/ancientScrollPdfService';
 import { DarkSealsBar } from '../components/DarkSealsBar';
 
 interface RelicItem {
