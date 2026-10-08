@@ -44,12 +44,12 @@ export const STRIPE_PAYMENT_LINKS: Record<string, string> = {
   cultist_monthly: (import.meta as any).env?.VITE_PAYMENT_LINK_CULTIST || 'https://buy.stripe.com/aFa9AT24Abvff6I6mn1gs01',
   grimoire_pack: (import.meta as any).env?.VITE_PAYMENT_LINK_ARCANE || 'https://buy.stripe.com/cNiaEXeRmarb4s46mn1gs02',
   // Modular Add-On Links
-  lorekeeper_monthly: (import.meta as any).env?.VITE_PAYMENT_LINK_LOREKEEPER || '',
-  audit_pack_onetime: (import.meta as any).env?.VITE_PAYMENT_LINK_AUDIT_TOPUP || '',
-  vault_addon_monthly: (import.meta as any).env?.VITE_PAYMENT_LINK_UNIVERSE_VAULT || '',
-  dark_lore_license: (import.meta as any).env?.VITE_PAYMENT_LINK_LOREKEEPER || '',
-  occult_topup: (import.meta as any).env?.VITE_PAYMENT_LINK_AUDIT_TOPUP || '',
-  universe_vault: (import.meta as any).env?.VITE_PAYMENT_LINK_UNIVERSE_VAULT || '',
+  lorekeeper_monthly: (import.meta as any).env?.VITE_PAYMENT_LINK_LOREKEEPER || 'https://buy.stripe.com/YOUR_LOREKEEPER_LINK',
+  audit_pack_onetime: (import.meta as any).env?.VITE_PAYMENT_LINK_AUDIT_TOPUP || 'https://buy.stripe.com/YOUR_AUDIT_PACK_LINK',
+  vault_addon_monthly: (import.meta as any).env?.VITE_PAYMENT_LINK_UNIVERSE_VAULT || 'https://buy.stripe.com/YOUR_VAULT_LINK',
+  dark_lore_license: (import.meta as any).env?.VITE_PAYMENT_LINK_LOREKEEPER || 'https://buy.stripe.com/YOUR_LOREKEEPER_LINK',
+  occult_topup: (import.meta as any).env?.VITE_PAYMENT_LINK_AUDIT_TOPUP || 'https://buy.stripe.com/YOUR_AUDIT_PACK_LINK',
+  universe_vault: (import.meta as any).env?.VITE_PAYMENT_LINK_UNIVERSE_VAULT || 'https://buy.stripe.com/YOUR_VAULT_LINK',
 };
 
 export interface StripePlan {

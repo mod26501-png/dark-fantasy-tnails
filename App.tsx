@@ -12,6 +12,7 @@ import { YouTubeChronicles } from './components/YouTubeChronicles';
 import { DenomicStudio } from './components/DenomicStudio';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { PricingTiers } from './components/PricingTiers';
+import { AdSenseBanner } from './components/AdSenseBanner';
 import { AngelicAgentModal } from './components/AngelicAgentModal';
 import { AngelicAgent, AngelicAgentErrorBoundary } from './components/AngelicAgent';
 import { ParticleCanvas } from './components/ParticleCanvas';
@@ -280,6 +281,20 @@ const App: React.FC = () => {
             window.history.replaceState({}, '', '/');
         } else if (isCancelled) {
             setAscensionMessage(`Ascension deferred. You remain in Mortal tier.`);
+            window.history.replaceState({}, '', '/');
+        }
+
+        // Check for return from Stripe Modular Add-On Links (?addon_success=lorekeeper | audits50 | vault3)
+        const addonSuccess = urlParams.get('addon_success');
+        if (addonSuccess) {
+            if (addonSuccess === 'lorekeeper') {
+                setAscensionMessage('📜 Lorekeeper Covenant Sealed! Unlimited mythic script audits & custom Codex Brain activated.');
+            } else if (addonSuccess === 'audits50') {
+                setAscensionMessage('⚡ 50 Deep Audit Fuel Pack Received! Sprint fuel credited to your Codex.');
+            } else if (addonSuccess === 'vault3') {
+                setAscensionMessage('🔮 Multi-Universe Vault (+3) Unlocked! 3 additional isolated universe bibles available.');
+            }
+            audioFX.playRuneChime();
             window.history.replaceState({}, '', '/');
         }
 
@@ -1243,6 +1258,11 @@ const App: React.FC = () => {
                     <PromptCardSet data={generatedData} onStartOver={handleStartOver} onOpenGallery={openGallery} />
                 )}
             </main>
+
+            {/* Google AdSense Sponsored Reliquary Transmission */}
+            <div className="w-full max-w-[1100px] mx-auto px-4 no-print">
+                <AdSenseBanner />
+            </div>
 
             <footer className="w-full max-w-[1100px] mx-auto p-8 mt-auto border-t border-[#242830]/50 no-print">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-6">

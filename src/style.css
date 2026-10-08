@@ -255,3 +255,17 @@
 .animate-float-fade {
   animation: float-fade 1.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Stripe Modular Add-On Button Link Utility */
+.addon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.addon-btn:hover {
+  text-decoration: none;
+}

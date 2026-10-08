@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { startStripeCheckout, STRIPE_PAYMENT_LINKS, StripeAddonPlan, DEFAULT_ADDON_PLANS } from '../services/stripeService';
-import { auth } from '../services/firebase';
+import { auth, onUserAuthStateChanged } from '../services/firebaseService';
+import type { User } from 'firebase/auth';
 
 export interface ModularAddOnsProps {
   className?: string;
@@ -13,39 +14,79 @@ export const ModularAddOns: React.FC<ModularAddOnsProps> = ({
   addons = DEFAULT_ADDON_PLANS,
   onAddonPurchased,
 }) => {
+  const [authUser, setAuthUser] = useState<User | null>(() => auth?.currentUser || null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [noticeMsg, setNoticeMsg] = useState<string | null>(null);
 
-  const handleCheckout = async (addon: StripeAddonPlan) => {
-    setErrorMsg(null);
-    setLoadingId(addon.id);
+  useEffect(() => {
+    const unsubscribe = onUserAuthStateChanged((user) => {
+      setAuthUser(user);
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
-    // If an official direct payment link is configured for this add-on, we can also prioritize or fallback to it
-    const directLink =
-      addon.paymentLink ||
-      STRIPE_PAYMENT_LINKS[addon.id] ||
-      (import.meta as any).env?.[`VITE_PAYMENT_LINK_${addon.id.toUpperCase()}`];
+  // Helper to append ?prefilled_email=${user.email} to Stripe payment links
+  const formatStripeLink = (baseLink: string): string => {
+    if (!baseLink) return '';
+    const email = authUser?.email || auth?.currentUser?.email;
+    if (!email) return baseLink;
+    const separator = baseLink.includes('?') ? '&' : '?';
+    return `${baseLink}${separator}prefilled_email=${encodeURIComponent(email)}`;
+  };
+
+  // Resolve official Stripe payment links from environment or defaults
+  const lorekeeperRaw =
+    (import.meta as any).env?.VITE_PAYMENT_LINK_LOREKEEPER ||
+    STRIPE_PAYMENT_LINKS.lorekeeper_monthly ||
+    'https://buy.stripe.com/YOUR_LOREKEEPER_LINK';
+
+  const auditPackRaw =
+    (import.meta as any).env?.VITE_PAYMENT_LINK_AUDIT_TOPUP ||
+    STRIPE_PAYMENT_LINKS.audit_pack_onetime ||
+    'https://buy.stripe.com/YOUR_AUDIT_PACK_LINK';
+
+  const universeVaultRaw =
+    (import.meta as any).env?.VITE_PAYMENT_LINK_UNIVERSE_VAULT ||
+    STRIPE_PAYMENT_LINKS.vault_addon_monthly ||
+    'https://buy.stripe.com/YOUR_VAULT_LINK';
+
+  const lorekeeperLink = formatStripeLink(lorekeeperRaw);
+  const auditPackLink = formatStripeLink(auditPackRaw);
+  const universeVaultLink = formatStripeLink(universeVaultRaw);
+
+  // Fallback to dynamic server-side checkout if placeholder link is clicked
+  const handleFallbackCheckout = async (addonId: string, planName: string, e: React.MouseEvent) => {
+    const rawLink =
+      addonId === 'lorekeeper_monthly' ? lorekeeperRaw :
+      addonId === 'audit_pack_onetime' ? auditPackRaw :
+      universeVaultRaw;
+
+    if (rawLink && !rawLink.includes('YOUR_')) {
+      // Valid Stripe payment link present — let default <a> navigation proceed to new tab
+      return;
+    }
+
+    // Otherwise, intercept and run dynamic server-side checkout
+    e.preventDefault();
+    setNoticeMsg(null);
+    setLoadingId(addonId);
 
     try {
-      const currentUser = auth?.currentUser;
-      // Trigger dynamic Stripe checkout session (creates session with exact name, description & price)
       await startStripeCheckout(
-        addon.id,
-        currentUser?.email || undefined,
-        currentUser?.uid || undefined
+        addonId,
+        authUser?.email || undefined,
+        authUser?.uid || undefined
       );
       if (onAddonPurchased) {
-        onAddonPurchased(addon.id);
+        onAddonPurchased(addonId);
       }
     } catch (err: any) {
-      console.warn(`Dynamic Stripe checkout unavailable for ${addon.id}, attempting direct link:`, err);
-      if (directLink) {
-        window.open(directLink, '_blank', 'noopener,noreferrer');
-      } else {
-        setErrorMsg(
-          `Unable to open checkout for ${addon.name}. Set VITE_PAYMENT_LINK_${addon.id.toUpperCase()} in your environment or ensure the Stripe backend is active.`
-        );
-      }
+      console.warn(`Dynamic checkout fallback notice for ${addonId}:`, err);
+      setNoticeMsg(
+        `To link direct checkout, set VITE_PAYMENT_LINK_${addonId.toUpperCase()} with your https://buy.stripe.com/... URL.`
+      );
     } finally {
       setLoadingId(null);
     }
@@ -69,9 +110,15 @@ export const ModularAddOns: React.FC<ModularAddOnsProps> = ({
           Strictly engineered for dark fantasy authors, occult tabletop worldbuilders, and grim narrative creators who require unrelenting canon precision.
         </p>
 
-        {errorMsg && (
-          <div className="mt-4 p-3 max-w-md mx-auto rounded-xl bg-red-950/40 border border-red-500/40 text-red-300 text-xs text-center font-mono">
-            {errorMsg}
+        {authUser?.email && (
+          <div className="mt-2 text-[10px] text-emerald-400 font-mono">
+            ✦ Signed in as: {authUser.email} (Email auto-fills in Stripe Checkout)
+          </div>
+        )}
+
+        {noticeMsg && (
+          <div className="mt-4 p-3 max-w-md mx-auto rounded-xl bg-purple-950/40 border border-purple-500/40 text-purple-200 text-xs text-center font-mono">
+            {noticeMsg}
           </div>
         )}
       </div>
@@ -79,7 +126,7 @@ export const ModularAddOns: React.FC<ModularAddOnsProps> = ({
       {/* 3 Add-on Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
         
-        {/* ADD-ON 1: Dark Lore License ($15/mo) */}
+        {/* ADD-ON 1: The Lorekeeper License ($15/mo) */}
         <div className="rounded-2xl bg-gradient-to-b from-[#140e1e] via-[#0d0914] to-[#08050c] border border-[#a855f7]/40 hover:border-[#c084fc] p-6 sm:p-7 flex flex-col justify-between shadow-[0_8px_30px_rgba(168,85,247,0.15)] transition-all duration-300 relative group hover:-translate-y-1">
           <div>
             <div className="flex justify-between items-center mb-4">
@@ -90,7 +137,7 @@ export const ModularAddOns: React.FC<ModularAddOnsProps> = ({
             </div>
 
             <h4 className="text-xl sm:text-2xl font-black text-white group-hover:text-[#c084fc] font-serif tracking-wide transition-colors mb-2">
-              Dark Lore License
+              The Lorekeeper License
             </h4>
             
             <p className="text-xs text-[#b8b0c4] mb-5 leading-relaxed min-h-[48px]">
@@ -119,26 +166,31 @@ export const ModularAddOns: React.FC<ModularAddOnsProps> = ({
                 <span className="text-[#c084fc] text-xs">✦</span>
                 <span>Unrelenting grimdark lore &amp; lexicon continuity lock</span>
               </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#c084fc] text-xs">✦</span>
+                <span>Multi-chapter consistency &amp; character bible lock</span>
+              </li>
             </ul>
           </div>
 
-          {/* Action CTA */}
+          {/* Action CTA Link */}
           <div className="mt-6 pt-5 border-t border-[#a855f7]/20">
-            <button
-              onClick={() => handleCheckout(addons[0] || DEFAULT_ADDON_PLANS[0])}
-              disabled={loadingId === 'lorekeeper_monthly'}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#a855f7] to-[#7928ca] hover:from-[#b975ff] hover:to-[#9333ea] text-white text-xs font-black uppercase tracking-[0.15em] transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+            <a
+              href={lorekeeperLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => handleFallbackCheckout('lorekeeper_monthly', 'The Lorekeeper License', e)}
+              className="addon-btn w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#a855f7] to-[#7c3aed] hover:from-[#c084fc] hover:to-[#9333ea] text-white text-xs font-black uppercase tracking-[0.15em] transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <span>{loadingId === 'lorekeeper_monthly' ? 'Summoning Stripe...' : 'Get Lorekeeper ($15/mo)'}</span>
-              <span className="text-sm">↗</span>
-            </button>
+              <span>{loadingId === 'lorekeeper_monthly' ? 'Summoning Stripe...' : 'GET LOREKEEPER ($15/MO) ↗'}</span>
+            </a>
             <p className="text-[10px] text-[#70757e] text-center mt-2 font-mono">
               Recurring Monthly Covenant &bull; Direct Stripe
             </p>
           </div>
         </div>
 
-        {/* ADD-ON 2: Occult Top-Up ($10 one-time) */}
+        {/* ADD-ON 2: 50 Deep Audit Fuel Pack ($10 one-time) */}
         <div className="rounded-2xl bg-gradient-to-b from-[#1c120c] via-[#120a06] to-[#0a0503] border border-[#ff7b25]/40 hover:border-[#ff9b50] p-6 sm:p-7 flex flex-col justify-between shadow-[0_8px_30px_rgba(255,123,37,0.15)] transition-all duration-300 relative group hover:-translate-y-1">
           <div>
             <div className="flex justify-between items-center mb-4">
@@ -178,26 +230,31 @@ export const ModularAddOns: React.FC<ModularAddOnsProps> = ({
                 <span className="text-[#ff9b50] text-xs">✦</span>
                 <span>Auto-harmonized mythic rewrites (Credits never expire)</span>
               </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#ff9b50] text-xs">✦</span>
+                <span>Instant sprint activation &bull; Stackable balances</span>
+              </li>
             </ul>
           </div>
 
-          {/* Action CTA */}
+          {/* Action CTA Link */}
           <div className="mt-6 pt-5 border-t border-[#ff7b25]/20">
-            <button
-              onClick={() => handleCheckout(addons[1] || DEFAULT_ADDON_PLANS[1])}
-              disabled={loadingId === 'audit_pack_onetime'}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#ff7b25] to-[#c2410c] hover:from-[#ff9b50] hover:to-[#ea580c] text-white text-xs font-black uppercase tracking-[0.15em] transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,123,37,0.4)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+            <a
+              href={auditPackLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => handleFallbackCheckout('audit_pack_onetime', '50 Deep Audit Fuel Pack', e)}
+              className="addon-btn w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#ff7b25] to-[#c2410c] hover:from-[#ff9b50] hover:to-[#ea580c] text-white text-xs font-black uppercase tracking-[0.15em] transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,123,37,0.4)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <span>{loadingId === 'audit_pack_onetime' ? 'Summoning Stripe...' : 'Add 50 Audits ($10)'}</span>
-              <span className="text-sm">↗</span>
-            </button>
+              <span>{loadingId === 'audit_pack_onetime' ? 'Summoning Stripe...' : 'ADD 50 AUDITS ($10) ↗'}</span>
+            </a>
             <p className="text-[10px] text-[#70757e] text-center mt-2 font-mono">
               One-Time Purchase &bull; Instant Fuel Pack
             </p>
           </div>
         </div>
 
-        {/* ADD-ON 3: Occult Grimoire Add-On ($5/mo) */}
+        {/* ADD-ON 3: Multi-Universe Vault (+3) ($5/mo) */}
         <div className="rounded-2xl bg-gradient-to-b from-[#091518] via-[#060e10] to-[#040708] border border-[#00d2ff]/40 hover:border-[#4ade80] p-6 sm:p-7 flex flex-col justify-between shadow-[0_8px_30px_rgba(0,210,255,0.15)] transition-all duration-300 relative group hover:-translate-y-1">
           <div>
             <div className="flex justify-between items-center mb-4">
@@ -237,19 +294,24 @@ export const ModularAddOns: React.FC<ModularAddOnsProps> = ({
                 <span className="text-[#00d2ff] text-xs">✦</span>
                 <span>Instant multi-series switching for studios &amp; authors</span>
               </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#00d2ff] text-xs">✦</span>
+                <span>Isolated cosmology &amp; pantheon memory banks</span>
+              </li>
             </ul>
           </div>
 
-          {/* Action CTA */}
+          {/* Action CTA Link */}
           <div className="mt-6 pt-5 border-t border-[#00d2ff]/20">
-            <button
-              onClick={() => handleCheckout(addons[2] || DEFAULT_ADDON_PLANS[2])}
-              disabled={loadingId === 'vault_addon_monthly'}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#00d2ff] to-[#0284c7] hover:from-[#38bdf8] hover:to-[#0369a1] text-black text-xs font-black uppercase tracking-[0.15em] transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,210,255,0.4)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+            <a
+              href={universeVaultLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => handleFallbackCheckout('vault_addon_monthly', 'Multi-Universe Vault (+3)', e)}
+              className="addon-btn w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#00d2ff] to-[#0284c7] hover:from-[#38bdf8] hover:to-[#0369a1] text-black text-xs font-black uppercase tracking-[0.15em] transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,210,255,0.4)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <span>{loadingId === 'vault_addon_monthly' ? 'Summoning Stripe...' : 'Add Universe Vault ($5/mo)'}</span>
-              <span className="text-sm">↗</span>
-            </button>
+              <span>{loadingId === 'vault_addon_monthly' ? 'Summoning Stripe...' : 'ADD UNIVERSE VAULT ($5/MO) ↗'}</span>
+            </a>
             <p className="text-[10px] text-[#70757e] text-center mt-2 font-mono">
               Monthly Add-On &bull; Direct Stripe
             </p>
@@ -262,7 +324,7 @@ export const ModularAddOns: React.FC<ModularAddOnsProps> = ({
       <div className="mt-8 pt-4 border-t border-[#1e232d] flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-[#6b7280]">
         <div className="flex items-center gap-2">
           <span className="text-[#10b981]">🛡️</span>
-          <span>Verified Stripe Dynamic Checkout &bull; Official descriptions &amp; price-locks auto-generated</span>
+          <span>Verified Stripe Direct Links &bull; Official descriptions &amp; prefilled customer email</span>
         </div>
         <div className="font-mono text-[10px] text-[#8d929b]">
           The Demon Codex Modular Engine &bull; Canon Precision Guaranteed
