@@ -6,6 +6,7 @@ import { subscribeToUserCodex } from "../services/firebaseService";
 import { getAllRelicsIDB, saveRelicIDB } from "../services/idbStorage";
 import { playBladeClang } from "../src/utils/soundEffects";
 import { HoloFoilCard } from '../components/HoloFoilCard';
+import { DarkSealsBar } from '../components/DarkSealsBar';
 
 interface RelicItem {
   id?: string;
@@ -227,7 +228,10 @@ export default function RelicCodex({ onBack }: RelicCodexProps) {
                 <p className="text-sm opacity-80 text-[#9aa0a6] leading-relaxed mb-4">{relic.description}</p>
               </div>
               
-              <div className="border-t border-[#242830]/40 pt-4 mt-2 flex items-center justify-between gap-2">
+              <div className="py-2 border-t border-[#242830]/40 flex items-center justify-between">
+                <DarkSealsBar relicId={relic.id || (relic.title || 'relic').replace(/\s+/g, '-').toLowerCase()} compact={true} />
+              </div>
+              <div className="border-t border-[#242830]/40 pt-3 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={async () => {

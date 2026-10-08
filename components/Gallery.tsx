@@ -11,7 +11,9 @@ import {
     ArrowUpRight, 
     Layers, 
     Eye,
-    Globe
+    Globe,
+    Compass,
+    Award
 } from 'lucide-react';
 import { generateSoundscape } from '../services/geminiService';
 import { 
@@ -23,9 +25,12 @@ import {
 } from '../services/firebaseService';
 import { getAllSessionsIDB } from '../services/idbStorage';
 import { HoloFoilCard } from './HoloFoilCard';
+import { DarkSealsBar } from './DarkSealsBar';
+import { DailyRitualBanner } from './DailyRitualBanner';
+import { getTodayRitual } from '../services/dailyRitualService';
 import { saveToHistory } from '../services/storageService';
 import { audioFX } from '../services/audioService';
-import type { GeneratedData } from '../types';
+import type { GeneratedData, DarkSealType } from '../types';
 
 interface GalleryProps {
     onBack: () => void;
@@ -45,38 +50,17 @@ const BloodDrops: React.FC = () => {
     );
 };
 
-const Sparkline: React.FC<{ color: string; seed: number }> = ({ color, seed }) => {
-    const points = [40, 35, 55, 45, 70, 65, 85].map((p, i) => `${i * 30},${100 - (p + (seed * 5))}`);
-    const path = `M ${points.join(' L ')}`;
-
-    return (
-        <div className="w-full h-16 mt-4 mb-2 relative group-hover:scale-105 transition-transform duration-500">
-            <svg viewBox="0 0 180 100" className="w-full h-full overflow-visible">
-                <path
-                    d={path}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="opacity-80"
-                    style={{ filter: `drop-shadow(0 0 5px ${color})` }}
-                />
-                <circle cx="180" cy={100 - (85 + (seed * 5))} r="4" fill={color} className="animate-pulse" />
-            </svg>
-            <div className="absolute top-0 right-0 text-[8px] font-black uppercase tracking-tighter" style={{ color }}>
-                +{10 + seed * 2.1}% Power
-            </div>
-        </div>
-    );
-};
-
 export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForgePrompt }) => {
     const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
     const [activeTab, setActiveTab] = useState<'cloud_history' | 'community'>('community');
     const [cloudHistory, setCloudHistory] = useState<GeneratedData[]>([]);
     const [communityGallery, setCommunityGallery] = useState<GeneratedData[]>([]);
     const [isLoadingFirestore, setIsLoadingFirestore] = useState(true);
+
+    // Ritual & Dark Seals Filter State
+    const todayRitual = useMemo(() => getTodayRitual(), []);
+    const [filterRitualOnly, setFilterRitualOnly] = useState<boolean>(false);
+    const [sortMode, setSortMode] = useState<'latest' | 'blood' | 'void' | 'soul' | 'spark'>('latest');
 
     // Inscribe Modal States
     const [isInscribing, setIsInscribing] = useState(false);
@@ -88,6 +72,7 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
     const [uploadLore, setUploadLore] = useState<string>('');
     const [uploadTags, setUploadTags] = useState<string>('relic, dark fantasy, abyssal');
     const [publishToPublic, setPublishToPublic] = useState<boolean>(true);
+    const [submitToDailyRitual, setSubmitToDailyRitual] = useState<boolean>(true);
     const [isSaving, setIsSaving] = useState<boolean>(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -98,7 +83,7 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
     const [publishedIds, setPublishedIds] = useState<Record<string, boolean>>({});
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    
+
     const localHistory: GeneratedData[] = useMemo(() => {
         try {
             const h = localStorage.getItem('demon_codex_history');
@@ -144,7 +129,63 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
         return () => { isMounted = false; };
     }, [localHistory]);
 
-    const activeList = activeTab === 'cloud_history' ? (cloudHistory.length > 0 ? cloudHistory : localHistory) : communityGallery;
+    // Check if a relic matches today's daily ritual
+    const isRitualMatch = (item: GeneratedData): boolean => {
+        if (item.ritualTheme && item.ritualTheme.toLowerCase() === todayRitual.theme.toLowerCase()) {
+            return true;
+        }
+        const tagLower = todayRitual.tag.toLowerCase();
+        return (item.cards || []).some(c => 
+            (c.tags || []).some(t => t.toLowerCase().includes(tagLower) || t.toLowerCase().includes('dailyritual'))
+        );
+    };
+
+    // Calculate count of community relics submitted to today's ritual
+    const ritualEntriesCount = useMemo(() => {
+        return communityGallery.filter(isRitualMatch).length;
+    }, [communityGallery, todayRitual]);
+
+    // Calculate Crowned Relic of the Day (highest total Dark Seals among ritual entries or all community entries)
+    const crownedRelic = useMemo(() => {
+        const pool = communityGallery.length > 0 ? communityGallery : [];
+        if (pool.length === 0) return null;
+
+        const ritualPool = pool.filter(isRitualMatch);
+        const candidates = ritualPool.length > 0 ? ritualPool : pool;
+
+        const sorted = [...candidates].sort((a, b) => {
+            const aTotal = (a.darkSeals?.blood || 0) + (a.darkSeals?.void || 0) + (a.darkSeals?.spark || 0) + (a.darkSeals?.soul || 0);
+            const bTotal = (b.darkSeals?.blood || 0) + (b.darkSeals?.void || 0) + (b.darkSeals?.spark || 0) + (b.darkSeals?.soul || 0);
+            return bTotal - aTotal;
+        });
+
+        const top = sorted[0];
+        const topTotal = (top.darkSeals?.blood || 0) + (top.darkSeals?.void || 0) + (top.darkSeals?.spark || 0) + (top.darkSeals?.soul || 0);
+        return topTotal > 0 ? top : pool[0];
+    }, [communityGallery, todayRitual]);
+
+    // Apply active filters and sorting
+    const activeList = useMemo(() => {
+        let base = activeTab === 'cloud_history' ? (cloudHistory.length > 0 ? cloudHistory : localHistory) : communityGallery;
+
+        if (filterRitualOnly && activeTab === 'community') {
+            base = base.filter(isRitualMatch);
+        }
+
+        if (sortMode === 'latest') {
+            return base;
+        }
+
+        return [...base].sort((a, b) => {
+            const aSeals = a.darkSeals || { blood: 0, void: 0, spark: 0, soul: 0 };
+            const bSeals = b.darkSeals || { blood: 0, void: 0, spark: 0, soul: 0 };
+            if (sortMode === 'blood') return bSeals.blood - aSeals.blood;
+            if (sortMode === 'void') return bSeals.void - aSeals.void;
+            if (sortMode === 'soul') return bSeals.soul - aSeals.soul;
+            if (sortMode === 'spark') return bSeals.spark - aSeals.spark;
+            return 0;
+        });
+    }, [activeTab, cloudHistory, localHistory, communityGallery, filterRitualOnly, sortMode, todayRitual]);
 
     const handleSoundscape = async () => {
         setIsGeneratingAudio(true);
@@ -169,7 +210,6 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
         }
     };
 
-    // Handle image file selection (both drag-drop and click upload)
     const handleProcessImageFile = (file: File) => {
         if (!file.type.startsWith('image/')) {
             setSaveError('Please select a valid image file (PNG, JPG, WebP, etc.)');
@@ -187,11 +227,9 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
             const rawDataUrl = e.target?.result as string;
             if (rawDataUrl) {
                 try {
-                    // Compress to guarantee safe Firestore document storage
                     const compressed = await compressImageForFirestore(rawDataUrl, 900, 0.82);
                     setUploadImage(compressed);
                     audioFX.playBladeUnsheathe();
-                    // Auto-fill title if empty
                     if (!uploadTitle) {
                         const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
                         const capitalized = nameWithoutExt.charAt(0).toUpperCase() + nameWithoutExt.slice(1);
@@ -237,12 +275,20 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
         setSaveError(null);
 
         try {
-            const tags = uploadTags
+            const rawTags = uploadTags
                 .split(',')
                 .map(t => t.trim().replace(/^#/, ''))
                 .filter(Boolean);
 
+            if (submitToDailyRitual) {
+                if (!rawTags.includes(todayRitual.tag)) rawTags.push(todayRitual.tag);
+                if (!rawTags.includes('DailyRitual')) rawTags.push('DailyRitual');
+            }
+
+            const ritualThemeToAttach = submitToDailyRitual ? todayRitual.theme : undefined;
+
             const newRelic: GeneratedData = {
+                id: `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
                 mainTitle: uploadTitle.trim(),
                 archetype: uploadArchetype.trim() || 'Cursed Relic',
                 tone: uploadTone.trim() || 'Atmospheric Dark Fantasy',
@@ -254,23 +300,22 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                         title: uploadTitle.trim(),
                         prompt: uploadLore.trim() || `Manifestation of ${uploadTitle.trim()}`,
                         caption: uploadLore.trim() || `An ancient relic inscribed into the Demon Codex Abyssal Archive.`,
-                        tags: tags.length > 0 ? tags : ['relic', 'abyssal', 'dark-fantasy'],
+                        tags: rawTags.length > 0 ? rawTags : ['relic', 'abyssal', 'dark-fantasy'],
                         imageUrl: uploadImage,
                     }
                 ],
                 negativePrompts: [],
-                remixSuggestions: []
+                remixSuggestions: [],
+                darkSeals: { blood: 0, void: 0, spark: 0, soul: 0 },
+                ritualTheme: ritualThemeToAttach,
+                ritualDate: submitToDailyRitual ? todayRitual.dateKey : undefined,
             };
 
-            // 1. First guarantee local preservation in history & IndexedDB so work is never lost
             saveToHistory(newRelic, uploadLore);
-
-            // 2. Save to Firestore (both user private sessions & public gallery if checked)
-            await saveManifestationToFirestore(newRelic, uploadLore, publishToPublic);
+            await saveManifestationToFirestore(newRelic, uploadLore, publishToPublic, ritualThemeToAttach);
 
             audioFX.playStoneRuneThud();
 
-            // Real-time state update
             setCloudHistory(prev => [newRelic, ...prev]);
             if (publishToPublic) {
                 setCommunityGallery(prev => [newRelic, ...prev]);
@@ -279,7 +324,6 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                 setActiveTab('cloud_history');
             }
 
-            // Reset form
             setUploadImage('');
             setUploadTitle('');
             setUploadLore('');
@@ -292,12 +336,11 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
         }
     };
 
-    // 1-Click publish session to public community gallery
     const handlePublishSessionToCommunity = async (session: GeneratedData, index: number) => {
-        const idKey = `${session.mainTitle}_${index}`;
+        const idKey = session.id || `${session.mainTitle}_${index}`;
         setPublishingId(idKey);
         try {
-            await publishSessionToPublicGallery(session);
+            await publishSessionToPublicGallery(session, session.ritualTheme);
             audioFX.playBladeUnsheathe();
             setPublishedIds(prev => ({ ...prev, [idKey]: true }));
             setCommunityGallery(prev => [session, ...prev]);
@@ -308,10 +351,16 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
         }
     };
 
+    const handleAcceptDailyRitual = (prompt: string, theme: string) => {
+        if (onForgePrompt) {
+            onForgePrompt(prompt);
+        }
+    };
+
     return (
         <div className="w-full animate-fade-in pb-12">
             {/* Header section */}
-            <div className="flex flex-col md:flex-row items-center justify-between mb-12 pt-4 sm:pt-6 gap-6">
+            <div className="flex flex-col md:flex-row items-center justify-between mb-8 pt-4 sm:pt-6 gap-6">
                 <div className="flex flex-col gap-2">
                     <div className="codex-title-wrapper !items-start !justify-start !m-0 !mt-6 sm:!mt-8 !mb-3 !w-auto">
                         <h2 className="codex-title text-4xl sm:text-5xl font-normal leading-none drop-shadow-[0_10px_15px_rgba(0,0,0,0.95)] select-none uppercase tracking-wide relative inline-block mt-3" data-text="THE ABYSSAL ARCHIVE">
@@ -355,8 +404,21 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                 </div>
             </div>
 
+            {/* Daily Midnight Ritual Altar Challenge Banner */}
+            <DailyRitualBanner
+                onAcceptRitual={handleAcceptDailyRitual}
+                onFilterRitualEntries={() => {
+                    setActiveTab('community');
+                    setFilterRitualOnly(prev => !prev);
+                }}
+                isFilteringRitual={filterRitualOnly}
+                ritualEntriesCount={ritualEntriesCount}
+                crownedRelic={crownedRelic}
+                onSelectRelic={onSelectRelic}
+            />
+
             {/* Tab navigation */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#242830] pb-4 mb-8 gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#242830] pb-4 mb-6 gap-4">
                 <div className="flex flex-wrap gap-3">
                     <button
                         id="tab-public-community"
@@ -414,6 +476,85 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                 </div>
             </div>
 
+            {/* Dark Seals Sorting & Filter Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-8 bg-[#0e1015] border border-[#242830] p-3 rounded-2xl">
+                <div className="flex items-center gap-2 text-xs">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[#70757e] flex items-center gap-1">
+                        <Compass className="w-3.5 h-3.5 text-[#ff4d4d]" />
+                        <span>DARK SEALS SORT:</span>
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => { audioFX.playStoneRuneThud(); setSortMode('latest'); }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                            sortMode === 'latest'
+                            ? 'bg-[#242830] text-white shadow-sm'
+                            : 'text-[#70757e] hover:text-[#e8e6e3]'
+                        }`}
+                    >
+                        Latest
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { audioFX.playDarkSealOffering('blood'); setSortMode('blood'); }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1 ${
+                            sortMode === 'blood'
+                            ? 'bg-[#ff4d4d]/20 text-[#ff4d4d] border border-[#ff4d4d]/40'
+                            : 'text-[#70757e] hover:text-[#ff4d4d]'
+                        }`}
+                    >
+                        <span>🩸</span>
+                        <span>Blood</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { audioFX.playDarkSealOffering('void'); setSortMode('void'); }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1 ${
+                            sortMode === 'void'
+                            ? 'bg-[#a855f7]/20 text-[#a855f7] border border-[#a855f7]/40'
+                            : 'text-[#70757e] hover:text-[#a855f7]'
+                        }`}
+                    >
+                        <span>👁️</span>
+                        <span>Void</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { audioFX.playDarkSealOffering('soul'); setSortMode('soul'); }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1 ${
+                            sortMode === 'soul'
+                            ? 'bg-[#cbd5e1]/20 text-[#cbd5e1] border border-[#cbd5e1]/40'
+                            : 'text-[#70757e] hover:text-[#cbd5e1]'
+                        }`}
+                    >
+                        <span>💀</span>
+                        <span>Soul</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { audioFX.playDarkSealOffering('spark'); setSortMode('spark'); }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1 ${
+                            sortMode === 'spark'
+                            ? 'bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/40'
+                            : 'text-[#70757e] hover:text-[#f59e0b]'
+                        }`}
+                    >
+                        <span>⚡</span>
+                        <span>Arcane</span>
+                    </button>
+                </div>
+
+                {filterRitualOnly && (
+                    <button
+                        type="button"
+                        onClick={() => setFilterRitualOnly(false)}
+                        className="text-[10px] font-black uppercase tracking-wider text-[#ff7878] bg-[#ff4d4d]/10 px-3 py-1 rounded-lg border border-[#ff4d4d]/30 hover:bg-[#ff4d4d]/20 transition-all flex items-center gap-1"
+                    >
+                        <span>✕ CLEAR RITUAL FILTER</span>
+                    </button>
+                )}
+            </div>
+
             {/* Main Gallery Content */}
             {isLoadingFirestore ? (
                 <div className="py-20 flex flex-col items-center justify-center gap-4">
@@ -424,14 +565,14 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
                     {/* Active Relics */}
                     {(activeList || []).map((data, i) => {
-                        const idKey = `${data.mainTitle}_${i}`;
+                        const idKey = data.id || `${data.mainTitle}_${i}`;
                         const isPublished = publishedIds[idKey];
                         const isPublishing = publishingId === idKey;
+                        const isRitual = isRitualMatch(data);
 
                         return (
-                          <HoloFoilCard key={i} tier={i % 3 === 0 ? 'abyssal-gold' : i % 2 === 0 ? 'void-cosmic' : 'blood-foil'} rarity={88} showBadge={true} className="h-full">
+                          <HoloFoilCard key={idKey} tier={i % 3 === 0 ? 'abyssal-gold' : i % 2 === 0 ? 'void-cosmic' : 'blood-foil'} rarity={88} showBadge={true} className="h-full">
                             <div 
-                                key={i} 
                                 className="group bg-[#111318] border border-[#242830] rounded-2xl overflow-hidden hover:border-[#00d2ff]/40 transition-all hover-blood shadow-xl flex flex-col justify-between"
                             >
                                 <div 
@@ -444,6 +585,14 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
+                                    
+                                    {/* Ritual Entry Badge */}
+                                    {isRitual && (
+                                        <div className="absolute top-3 right-3 bg-[#ff4d4d]/90 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full border border-red-400 shadow-lg tracking-wider flex items-center gap-1 z-20">
+                                            <span>✦ DAILY RITUAL</span>
+                                        </div>
+                                    )}
+
                                     <div className="absolute bottom-4 left-4 right-4">
                                         <h3 className="text-white font-bold leading-tight line-clamp-1 group-hover:text-[#00d2ff] transition-colors">{data.mainTitle}</h3>
                                         <p className="text-[9px] text-[#00d2ff] uppercase font-black tracking-widest">{data.archetype}</p>
@@ -462,6 +611,20 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                                             <span>VIEW FORGE</span>
                                             <ArrowUpRight className="w-3 h-3" />
                                         </button>
+                                    </div>
+
+                                    {/* Dark Seals Occult Reaction Bar */}
+                                    <div className="pt-2 border-t border-[#242830] flex items-center justify-between">
+                                        <DarkSealsBar
+                                            relicId={idKey}
+                                            initialSeals={data.darkSeals}
+                                            compact={true}
+                                        />
+                                        {data.ritualTheme && (
+                                            <span className="text-[8px] font-mono text-[#ff7878] truncate max-w-[100px]" title={data.ritualTheme}>
+                                                #{data.ritualTheme.replace(/\s+/g, '')}
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* If in Cloud Sessions, allow 1-click publishing to Public Abyssal Archive */}
@@ -491,15 +654,12 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                                         </button>
                                     )}
                                 </div>
-                                </div>
+                            </div>
                           </HoloFoilCard>
                         );
                     })}
 
-                    {/* Interactive "Inscribe New Relic" Action Cards:
-                        If list is empty, display 6 interactive manifestation slots.
-                        If list has items, append 1 interactive manifestation slot at the end so the user can easily add more!
-                    */}
+                    {/* Interactive "Inscribe New Relic" Action Cards */}
                     {(activeList || []).length === 0 ? (
                         Array.from({ length: 6 }).map((_, i) => (
                             <div 
@@ -549,55 +709,51 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
 
             {/* Inscribe / Upload Relic Modal */}
             {isInscribing && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-                    <div className="bg-[#111318] border border-[#242830] rounded-3xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl p-6 sm:p-8 flex flex-col relative">
-                        {/* Close button */}
-                        <button 
-                            onClick={() => {
-                                audioFX.playBladeUnsheathe();
-                                setIsInscribing(false);
-                            }}
-                            className="absolute top-6 right-6 p-2 rounded-full border border-[#242830] text-[#70757e] hover:text-white hover:border-[#ff4d4d] transition-all"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-
-                        <div className="mb-6">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ff4d4d]/10 border border-[#ff4d4d]/30 text-[#ff4d4d] text-[10px] font-black uppercase tracking-widest mb-2">
-                                <span>✦ CLOUD FIRESTORE ARCHIVE</span>
+                <div 
+                    className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+                    onClick={() => setIsInscribing(false)}
+                >
+                    <div 
+                        className="bg-[#111318] border-2 border-[#8d1a1a] shadow-[0_0_50px_rgba(141,26,26,0.5)] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between border-b border-[#242830] pb-4 mb-6">
+                            <div>
+                                <h3 className="text-xl sm:text-2xl font-black uppercase tracking-wide text-[#e8e6e3] flex items-center gap-2">
+                                    <span>✦</span>
+                                    <span>Inscribe Relic Manifest</span>
+                                </h3>
+                                <span className="text-[10px] text-[#70757e] uppercase tracking-widest">
+                                    Preserve artwork directly into Cloud Firestore & Public Archive
+                                </span>
                             </div>
-                            <h3 className="text-2xl sm:text-3xl font-black text-white uppercase italic tracking-tight">
-                                Inscribe Into The Codex
-                            </h3>
-                            <p className="text-xs text-[#70757e] uppercase tracking-wider mt-1">
-                                Add your dark fantasy imagery to the public archive or forge anew with the AI engine.
-                            </p>
+                            <button 
+                                onClick={() => setIsInscribing(false)}
+                                className="w-8 h-8 rounded-lg border border-[#242830] hover:border-[#ff4d4d] text-[#70757e] hover:text-[#ff4d4d] flex items-center justify-center transition-all"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
                         </div>
 
                         {/* Mode Switcher */}
-                        <div className="grid grid-cols-2 gap-3 mb-6 p-1 bg-[#0b0c10] rounded-2xl border border-[#242830]">
+                        <div className="grid grid-cols-2 gap-2 p-1 bg-[#0b0c10] rounded-xl border border-[#242830] mb-6">
                             <button
                                 type="button"
-                                onClick={() => {
-                                    audioFX.playStoneRuneThud();
-                                    setInscribeMode('upload');
-                                }}
-                                className={`py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                                onClick={() => setInscribeMode('upload')}
+                                className={`py-2 px-3 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                                     inscribeMode === 'upload'
-                                    ? 'bg-[#8d1a1a] text-white shadow-[0_0_15px_rgba(141,26,26,0.5)]'
+                                    ? 'bg-[#8d1a1a] text-white shadow-[0_0_15px_rgba(141,26,26,0.4)]'
                                     : 'text-[#70757e] hover:text-[#e8e6e3]'
                                 }`}
                             >
                                 <Upload className="w-4 h-4" />
-                                <span>Direct Image Upload</span>
+                                <span>Upload Image File</span>
                             </button>
                             <button
                                 type="button"
-                                onClick={() => {
-                                    audioFX.playStoneRuneThud();
-                                    setInscribeMode('forge');
-                                }}
-                                className={`py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                                onClick={() => setInscribeMode('forge')}
+                                className={`py-2 px-3 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                                     inscribeMode === 'forge'
                                     ? 'bg-[#00d2ff] text-black shadow-[0_0_15px_rgba(0,210,255,0.4)]'
                                     : 'text-[#70757e] hover:text-[#e8e6e3]'
@@ -611,7 +767,6 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                         {/* Mode 1: Direct Image Upload Form */}
                         {inscribeMode === 'upload' && (
                             <form onSubmit={handleInscribeSubmit} className="space-y-5">
-                                {/* Upload / Drag-and-drop Zone */}
                                 <div>
                                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#70757e] mb-2">
                                         Relic Imagery *
@@ -670,7 +825,6 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                                     />
                                 </div>
 
-                                {/* Title & Archetype Fields */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#70757e] mb-2">
@@ -698,15 +852,13 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                                             <option value="Cursed Relic">Cursed Relic</option>
                                             <option value="Forbidden Grimoire">Forbidden Grimoire</option>
                                             <option value="Demonic Blade">Demonic Blade</option>
-                                            <option value="Abyssal Armor">Abyssal Armor</option>
-                                            <option value="Eldritch Amulet">Eldritch Amulet</option>
-                                            <option value="Unholy Idol">Unholy Idol</option>
-                                            <option value="Spectral Tome">Spectral Tome</option>
+                                            <option value="Obsidian Effigy">Obsidian Effigy</option>
+                                            <option value="Blood Chalice">Blood Chalice</option>
+                                            <option value="Ossuary Reliquary">Ossuary Reliquary</option>
                                         </select>
                                     </div>
                                 </div>
 
-                                {/* Lore / Description */}
                                 <div>
                                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#70757e] mb-2">
                                         Forbidden Lore / Chronicle
@@ -720,7 +872,6 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                                     />
                                 </div>
 
-                                {/* Tags */}
                                 <div>
                                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#70757e] mb-2">
                                         Tags (Comma separated)
@@ -732,6 +883,26 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                                         placeholder="relic, cursed, abyssal, blood"
                                         className="w-full px-4 py-3 bg-[#0e1017] border border-[#242830] rounded-xl text-white placeholder-[#444] text-xs focus:border-[#00d2ff] focus:outline-none transition-all"
                                     />
+                                </div>
+
+                                {/* Daily Ritual Submission Checkbox */}
+                                <div className="flex items-center gap-3 p-4 rounded-xl bg-[#140a0a] border border-[#ff4d4d]/30">
+                                    <input
+                                        type="checkbox"
+                                        id="daily-ritual-toggle"
+                                        checked={submitToDailyRitual}
+                                        onChange={(e) => setSubmitToDailyRitual(e.target.checked)}
+                                        className="w-4 h-4 accent-[#ff4d4d] cursor-pointer rounded"
+                                    />
+                                    <label htmlFor="daily-ritual-toggle" className="text-xs font-bold text-[#e8e6e3] cursor-pointer flex flex-col">
+                                        <span className="flex items-center gap-1.5 text-[#ff7878]">
+                                            <Sparkles className="w-3.5 h-3.5 text-[#ff4d4d]" />
+                                            <span>Submit as Entry for Today's Ritual: {todayRitual.title}</span>
+                                        </span>
+                                        <span className="text-[10px] font-normal text-[#9aa0a6]">
+                                            Attaches the #{todayRitual.tag} sigil to contend for today's Crowned High Altar relic.
+                                        </span>
+                                    </label>
                                 </div>
 
                                 {/* Public Community Checkbox */}
@@ -749,7 +920,7 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                                             <span>Publish to Public Abyssal Archive (Firestore)</span>
                                         </span>
                                         <span className="text-[10px] font-normal text-[#70757e]">
-                                            Shares this relic with the community archive so other cultists can view it.
+                                            Shares this relic with the community archive so other cultists can view and bestow Dark Seals.
                                         </span>
                                     </label>
                                 </div>
@@ -823,20 +994,19 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                                     </button>
                                     <button
                                         type="button"
+                                        disabled={!forgeIdea.trim()}
                                         onClick={() => {
-                                            if (onForgePrompt && forgeIdea.trim()) {
-                                                audioFX.playBladeUnsheathe();
+                                            if (forgeIdea.trim()) {
                                                 setIsInscribing(false);
-                                                onForgePrompt(forgeIdea.trim());
-                                            } else {
-                                                setIsInscribing(false);
-                                                onBack();
+                                                if (onForgePrompt) {
+                                                    onForgePrompt(forgeIdea.trim());
+                                                }
                                             }
                                         }}
-                                        className="px-6 py-3 rounded-xl bg-[#00d2ff] hover:bg-white text-black text-xs font-black uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(0,210,255,0.4)] flex items-center gap-2"
+                                        className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#00d2ff] to-[#0077ff] hover:from-[#33ddff] hover:to-[#1a88ff] text-black text-xs font-black uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(0,210,255,0.4)] disabled:opacity-50 flex items-center gap-2"
                                     >
-                                        <Sparkles className="w-3.5 h-3.5" />
-                                        <span>ENTER FORGE WITH THIS VISION</span>
+                                        <Sparkles className="w-4 h-4 text-black" />
+                                        <span>OPEN IN FORGE</span>
                                     </button>
                                 </div>
                             </div>
@@ -844,56 +1014,6 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                     </div>
                 </div>
             )}
-
-            {/* Sacrifice tiers / pricing */}
-            <div className="mt-20 relative z-10">
-                <div className="text-center mb-12">
-                    <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter mb-4">Sacrifice for Greater Power</h3>
-                    <p className="text-[#70757e] max-w-2xl mx-auto uppercase text-[10px] font-bold tracking-[0.3em]">Unlock the Forbidden Tiers of the Codex</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div className="p-8 rounded-[2rem] bg-[#111318] border border-[#242830] flex flex-col group">
-                        <h4 className="text-[#70757e] text-xs font-black uppercase mb-2">Initiate</h4>
-                        <div className="text-3xl font-black text-white mb-2">Free <span className="text-sm font-normal text-[#444]">/ life</span></div>
-                        <Sparkline color="#444" seed={1} />
-                        <ul className="space-y-4 mb-8 flex-grow">
-                            <li className="text-xs text-[#9aa0a6] flex items-center gap-2">✓ Gemini Flash Tier</li>
-                            <li className="text-xs text-[#9aa0a6] flex items-center gap-2">✓ Standard 1K Resolving</li>
-                            <li className="text-xs text-[#444] flex items-center gap-2">✕ Ephemeral Slots</li>
-                        </ul>
-                        <button disabled className="w-full py-4 rounded-xl border border-[#242830] text-xs font-black uppercase text-[#444]">Current Path</button>
-                    </div>
-
-                    <div className="p-8 rounded-[2rem] bg-gradient-to-b from-[#111318] to-[#0b0b0f] border border-[#00d2ff]/30 shadow-[0_0_30px_rgba(0,210,255,0.1)] flex flex-col relative overflow-hidden group hover:border-[#00d2ff] transition-all">
-                        <div className="absolute top-0 right-0 bg-[#00d2ff] text-black text-[9px] font-black px-4 py-1 uppercase tracking-widest rotate-45 translate-x-4 translate-y-2">Popular</div>
-                        <h4 className="text-[#00d2ff] text-xs font-black uppercase mb-2">Scribe</h4>
-                        <div className="text-3xl font-black text-white mb-2">$19 <span className="text-sm font-normal text-[#70757e]">/ month</span></div>
-                        <Sparkline color="#00d2ff" seed={2} />
-                        <ul className="space-y-4 mb-8 flex-grow">
-                            <li className="text-xs text-[#e8e6e3] flex items-center gap-2"><span className="text-[#00d2ff]">✦</span> Unlimited Abyssal Archive</li>
-                            <li className="text-xs text-[#e8e6e3] flex items-center gap-2"><span className="text-[#00d2ff]">✦</span> 2K Vector Manifestation</li>
-                            <li className="text-xs text-[#e8e6e3] flex items-center gap-2"><span className="text-[#00d2ff]">✦</span> No Manifestation Cooldown</li>
-                        </ul>
-                        <button className="w-full py-4 rounded-xl bg-transparent border border-[#00d2ff] text-[#00d2ff] text-xs font-black uppercase hover:bg-[#00d2ff] hover:text-black transition-all">Bind Spirit</button>
-                    </div>
-
-                    <div className="p-8 rounded-[2rem] bg-gradient-to-br from-[#1b1212] to-[#111318] border-2 border-[#8d1a1a] shadow-[0_0_50px_rgba(141,26,26,0.3)] flex flex-col group hover:scale-105 transition-all">
-                        <h4 className="text-[#ff4d4d] text-xs font-black uppercase mb-2">High Priest</h4>
-                        <div className="text-3xl font-black text-white mb-2">$49 <span className="text-sm font-normal text-[#70757e]">/ month</span></div>
-                        <Sparkline color="#ff0000" seed={3} />
-                        <ul className="space-y-4 mb-8 flex-grow">
-                            <li className="text-xs text-[#e8e6e3] flex items-center gap-2"><span className="text-[#ff4d4d]">◈</span> 4K Ultra-Fidelity Relics</li>
-                            <li className="text-xs text-[#e8e6e3] flex items-center gap-2"><span className="text-[#ff4d4d]">◈</span> Gemini 3 Pro Engine</li>
-                            <li className="text-xs text-[#e8e6e3] flex items-center gap-2"><span className="text-[#ff4d4d]">◈</span> Veo 3.1 Video Rituals</li>
-                            <li className="text-xs text-[#e8e6e3] flex items-center gap-2"><span className="text-[#ff4d4d]">◈</span> Commercial Rights Grimoire</li>
-                        </ul>
-                        <button className="w-full py-4 rounded-xl bg-[#8d1a1a] text-white text-xs font-black uppercase shadow-[0_0_20px_#8d1a1a] hover:bg-[#ff0000] transition-all">Ascend Now</button>
-                    </div>
-                </div>
-                
-                <p className="text-center mt-12 text-[9px] font-bold text-[#444] uppercase tracking-[0.4em]">All rituals processed with 40% margin for the Great Architect</p>
-            </div>
         </div>
     );
 };

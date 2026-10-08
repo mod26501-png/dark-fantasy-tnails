@@ -19,7 +19,31 @@ export interface PromptCard {
   diagnostic?: ImageDiagnostic;
 }
 
+export interface DarkSeals {
+  blood: number; // 🩸 Blood Offering
+  void: number;  // 👁️ Void Gaze
+  spark: number; // ⚡ Arcane Spark
+  soul: number;  // 💀 Soul Bound
+}
+
+export type DarkSealType = 'blood' | 'void' | 'spark' | 'soul';
+
+export interface DailyRitual {
+  id: string; // e.g. 'ritual-2026-10-08'
+  title: string;
+  theme: string;
+  directive: string;
+  lore: string;
+  tag: string;
+  recommendedArchetype: string;
+  suggestedPrompt: string;
+  altarBoon: string;
+  dateKey: string;
+  resetTimeEpochMs: number;
+}
+
 export interface GeneratedData {
+  id?: string;
   mainTitle: string;
   archetype: string;
   tone: string;
@@ -29,4 +53,7 @@ export interface GeneratedData {
   cards: PromptCard[];
   negativePrompts: string[];
   remixSuggestions: string[];
+  darkSeals?: DarkSeals;
+  ritualTheme?: string;
+  ritualDate?: string;
 }

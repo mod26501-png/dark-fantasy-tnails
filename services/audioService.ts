@@ -707,6 +707,83 @@ class AbyssalChoirEngine {
     public playAscensionChime(): void {
         this.playRuneChime();
     }
+
+    /**
+     * Occult sound feedback when bestowing a Dark Seal (Blood Offering, Void Gaze, Arcane Spark, Soul Bound)
+     */
+    public playDarkSealOffering(type: 'blood' | 'void' | 'spark' | 'soul'): void {
+        if (this.state.sfxMuted) return;
+        const ctx = this.initContext();
+        if (!ctx) return;
+
+        try {
+            const now = ctx.currentTime;
+
+            if (type === 'blood') {
+                // Low resonant pulse + visceral blood drip drop
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.exponentialRampToValueAtTime(45, now + 0.35);
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc.connect(gain);
+                if (this.sfxMasterGain) gain.connect(this.sfxMasterGain);
+                osc.start(now);
+                osc.stop(now + 0.45);
+            } else if (type === 'void') {
+                // Eerie cosmic shimmer sweep
+                const osc = ctx.createOscillator();
+                const filter = ctx.createBiquadFilter();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(432, now);
+                osc.frequency.exponentialRampToValueAtTime(864, now + 0.5);
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(650, now);
+                filter.Q.setValueAtTime(4.0, now);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+                osc.connect(filter);
+                filter.connect(gain);
+                if (this.sfxMasterGain) gain.connect(this.sfxMasterGain);
+                osc.start(now);
+                osc.stop(now + 0.6);
+            } else if (type === 'spark') {
+                // Electric crackle & arcane zap
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(1400, now);
+                osc.frequency.linearRampToValueAtTime(320, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                osc.connect(gain);
+                if (this.sfxMasterGain) gain.connect(this.sfxMasterGain);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'soul') {
+                // Deep ossuary bell toll
+                const osc1 = ctx.createOscillator();
+                const osc2 = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc1.type = 'sine';
+                osc2.type = 'triangle';
+                osc1.frequency.setValueAtTime(220, now);
+                osc2.frequency.setValueAtTime(261.63, now); // Minor third
+                gain.gain.setValueAtTime(0.28, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+                osc1.connect(gain);
+                osc2.connect(gain);
+                if (this.sfxMasterGain) gain.connect(this.sfxMasterGain);
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + 0.9);
+                osc2.stop(now + 0.9);
+            }
+        } catch {}
+    }
 }
 
 export const audioFX = new AbyssalChoirEngine();

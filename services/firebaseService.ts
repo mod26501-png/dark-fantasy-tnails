@@ -23,10 +23,13 @@ import {
   limit, 
   onSnapshot, 
   serverTimestamp,
-  getDocFromServer 
+  getDocFromServer,
+  updateDoc,
+  increment
 } from "firebase/firestore";
 import firebaseConfigFile from "../firebase-applet-config.json";
-import type { GeneratedData } from "../types";
+import type { GeneratedData, DarkSeals, DarkSealType } from "../types";
+import { getTodayRitualDateKey } from "./dailyRitualService";
 
 export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || (firebaseConfigFile as any)?.apiKey || 'AIzaSyBXnMwhVJAYy21TOQ26Es2485sr8H3qMsA',
@@ -350,7 +353,8 @@ export const compressImageForFirestore = async (
 export const saveManifestationToFirestore = async (
   data: GeneratedData, 
   userIdea?: string,
-  publishToPublic = true
+  publishToPublic = true,
+  ritualTheme?: string
 ): Promise<string> => {
   try {
     const userId = await getEffectiveUserId();
@@ -382,6 +386,9 @@ export const saveManifestationToFirestore = async (
       userIdea: userIdea || "",
       bannerImageUrl: compressedBanner,
       cards: compressedCards,
+      darkSeals: data.darkSeals || { blood: 0, void: 0, spark: 0, soul: 0 },
+      ritualTheme: ritualTheme || data.ritualTheme || "",
+      ritualDate: data.ritualDate || (ritualTheme ? getTodayRitualDateKey() : ""),
       createdAt: serverTimestamp(),
     };
 
@@ -405,7 +412,7 @@ export const saveManifestationToFirestore = async (
 /**
  * Explicitly publish a relic series to the public community gallery in Cloud Firestore
  */
-export const publishSessionToPublicGallery = async (data: GeneratedData): Promise<string> => {
+export const publishSessionToPublicGallery = async (data: GeneratedData, ritualTheme?: string): Promise<string> => {
   try {
     const userId = await getEffectiveUserId();
     const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -459,7 +466,16 @@ export const fetchUserHistoryFromFirestore = async (): Promise<GeneratedData[]> 
 
     return snapshot.docs.map((docSnap) => {
       const d = docSnap.data();
+      const rawSeals = d.darkSeals || {};
+      const darkSeals: DarkSeals = {
+        blood: typeof rawSeals.blood === 'number' ? rawSeals.blood : 0,
+        void: typeof rawSeals.void === 'number' ? rawSeals.void : 0,
+        spark: typeof rawSeals.spark === 'number' ? rawSeals.spark : 0,
+        soul: typeof rawSeals.soul === 'number' ? rawSeals.soul : 0,
+      };
+
       return {
+        id: docSnap.id,
         mainTitle: d.mainTitle || "The Demon Codex",
         archetype: d.archetype || "Relic Series",
         tone: d.tone || "Dark Fantasy",
@@ -476,6 +492,9 @@ export const fetchUserHistoryFromFirestore = async (): Promise<GeneratedData[]> 
         })),
         negativePrompts: d.negativePrompts || [],
         remixSuggestions: d.remixSuggestions || [],
+        darkSeals,
+        ritualTheme: d.ritualTheme || "",
+        ritualDate: d.ritualDate || "",
       } as GeneratedData;
     });
   } catch (err) {
@@ -597,4 +616,51 @@ export const subscribeToUserCodex = (callback: (relics: FirestoreRelicItem[]) =>
   return () => {
     if (unsubscribeSnapshot) unsubscribeSnapshot();
   };
+};
+
+/**
+ * Bestow an Occult Dark Seal (Blood Offering, Void Gaze, Arcane Spark, Soul Bound) on a public gallery relic.
+ * Atomically increments tally in Firestore with resilient offline localStorage fallback.
+ */
+export const bestowDarkSeal = async (
+  relicId: string, 
+  sealType: DarkSealType
+): Promise<{ success: boolean }> => {
+  if (!relicId) return { success: false };
+
+  const storageKey = `demon_codex_seal_${relicId}_${sealType}`;
+  localStorage.setItem(storageKey, 'true');
+
+  try {
+    const relicRef = doc(db, "public_gallery", relicId);
+    await updateDoc(relicRef, {
+      [`darkSeals.${sealType}`]: increment(1)
+    });
+    return { success: true };
+  } catch (err) {
+    try {
+      const relicRef = doc(db, "public_gallery", relicId);
+      await setDoc(relicRef, {
+        darkSeals: {
+          [sealType]: increment(1)
+        }
+      }, { merge: true });
+      return { success: true };
+    } catch (fallbackErr) {
+      console.warn("Could not persist Dark Seal to Firestore, saved locally:", fallbackErr);
+      return { success: true };
+    }
+  }
+};
+
+/**
+ * Checks whether the current user on this device has already bestowed a given Dark Seal on a relic.
+ */
+export const hasUserBestowedSeal = (relicId: string, sealType: DarkSealType): boolean => {
+  if (!relicId) return false;
+  try {
+    return localStorage.getItem(`demon_codex_seal_${relicId}_${sealType}`) === 'true';
+  } catch {
+    return false;
+  }
 };

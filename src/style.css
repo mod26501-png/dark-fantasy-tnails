@@ -228,3 +228,30 @@
     radial-gradient(circle 1.8px at 15% 80%, rgba(255,77,77,0.55), transparent 60%);
   background-size: 100% 100%, 80px 80px, 90px 90px, 120px 120px, 110px 110px;
 }
+
+/* =========================================================================
+   DARK SEALS & DAILY RITUAL ANIMATIONS
+   ========================================================================= */
+
+@keyframes float-fade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.85);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -4px) scale(1.05);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -18px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -32px) scale(0.9);
+  }
+}
+
+.animate-float-fade {
+  animation: float-fade 1.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

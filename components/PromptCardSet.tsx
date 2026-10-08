@@ -7,6 +7,7 @@ import { saveToCodex, removeFromCodex } from '../services/storageService';
 import { backupSeriesToDrive, uploadFileToDrive, urlToBlob } from '../services/driveService';
 import { ImageDiagnosticOverlay } from './ImageDiagnosticOverlay';
 import { HoloFoilCard } from './HoloFoilCard';
+import { DarkSealsBar } from './DarkSealsBar';
 import { playBladeClang, playRuneHum } from '../src/utils/soundEffects';
 import type { GeneratedData, PromptCard as PromptCardType } from '../types';
 
@@ -401,6 +402,10 @@ const Card: React.FC<{
           </button>
         </div>
 
+        <div className="pt-2 border-t border-[#242830] flex items-center justify-between mb-1">
+          <span className="text-[8px] font-black uppercase text-[#70757e] tracking-widest">DARK SEALS</span>
+          <DarkSealsBar relicId={(currentCard.title || 'relic').replace(/\s+/g, '-').toLowerCase()} compact={true} />
+        </div>
         <div className="flex gap-2 mt-2 no-print">
           <button 
             id={`codex-btn-${(currentCard.title || 'relic').replace(/\s+/g, '-').toLowerCase()}`}
