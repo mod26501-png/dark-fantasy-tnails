@@ -40,17 +40,17 @@ export const ModularAddOns: React.FC<ModularAddOnsProps> = ({
   const lorekeeperRaw =
     (import.meta as any).env?.VITE_PAYMENT_LINK_LOREKEEPER ||
     STRIPE_PAYMENT_LINKS.lorekeeper_monthly ||
-    'https://buy.stripe.com/YOUR_LOREKEEPER_LINK';
+    'https://buy.stripe.com/8x214n6kQczj0bO7qr1gs06';
 
   const auditPackRaw =
     (import.meta as any).env?.VITE_PAYMENT_LINK_AUDIT_TOPUP ||
     STRIPE_PAYMENT_LINKS.audit_pack_onetime ||
-    'https://buy.stripe.com/YOUR_AUDIT_PACK_LINK';
+    'https://buy.stripe.com/28E28r24Abvfe2E2671gs05';
 
   const universeVaultRaw =
     (import.meta as any).env?.VITE_PAYMENT_LINK_UNIVERSE_VAULT ||
     STRIPE_PAYMENT_LINKS.vault_addon_monthly ||
-    'https://buy.stripe.com/YOUR_VAULT_LINK';
+    'https://buy.stripe.com/14A8wP10w7eZ2jWbGH1gs04';
 
   const lorekeeperLink = formatStripeLink(lorekeeperRaw);
   const auditPackLink = formatStripeLink(auditPackRaw);
@@ -335,3 +335,5 @@ export const ModularAddOns: React.FC<ModularAddOnsProps> = ({
 };
 
 export default ModularAddOns;
+
+export { default as CodexAddons } from './CodexAddons';
