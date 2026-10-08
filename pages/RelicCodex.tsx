@@ -5,6 +5,7 @@ import { uploadFileToDrive, urlToBlob, getOrCreateCodexFolder, requestGoogleDriv
 import { subscribeToUserCodex } from "../services/firebaseService";
 import { getAllRelicsIDB, saveRelicIDB } from "../services/idbStorage";
 import { playBladeClang } from "../src/utils/soundEffects";
+import { HoloFoilCard } from '../components/HoloFoilCard';
 
 interface RelicItem {
   id?: string;
@@ -205,6 +206,7 @@ export default function RelicCodex({ onBack }: RelicCodexProps) {
       {(relics || []).length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {(relics || []).map((relic, index) => (
+            <HoloFoilCard key={index} tier={index % 3 === 0 ? 'abyssal-gold' : index % 2 === 0 ? 'blood-foil' : 'void-cosmic'} rarity={92} showBadge={true} className="h-full">
             <div
               key={index}
               className="bg-black/40 border border-red-900/40 rounded-xl p-4 shadow-lg hover:shadow-red-700/40 transition-all flex flex-col justify-between group"
@@ -288,7 +290,8 @@ export default function RelicCodex({ onBack }: RelicCodexProps) {
                   ☠ PURGE
                 </button>
               </div>
-            </div>
+              </div>
+            </HoloFoilCard>
           ))}
         </div>
       ) : (

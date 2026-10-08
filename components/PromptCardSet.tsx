@@ -6,6 +6,7 @@ import { analyzeLore, generateRelicVideo, generateSoundscape, generateImageWithD
 import { saveToCodex, removeFromCodex } from '../services/storageService';
 import { backupSeriesToDrive, uploadFileToDrive, urlToBlob } from '../services/driveService';
 import { ImageDiagnosticOverlay } from './ImageDiagnosticOverlay';
+import { HoloFoilCard } from './HoloFoilCard';
 import { playBladeClang, playRuneHum } from '../src/utils/soundEffects';
 import type { GeneratedData, PromptCard as PromptCardType } from '../types';
 
@@ -252,16 +253,10 @@ const Card: React.FC<{
       setIsGeneratingAudio(false);
     }
   };
-
   return (
-    <motion.article 
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      onMouseEnter={() => playRuneHum()}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="card bg-[#111318] border border-[#242830] rounded-xl overflow-hidden flex flex-col group/card transition-all hover:border-[#00d2ff]/40 shadow-xl hover:shadow-[0_0_30px_rgba(0,210,255,0.1)]"
-    >
+    <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="h-full">
+      <HoloFoilCard tier="auto" rarity={(currentCard as any).stats?.power || 88} showBadge={true} className="h-full">
+        <article onMouseEnter={() => playRuneHum()} className="card bg-[#111318] border border-[#242830] rounded-2xl overflow-hidden flex flex-col h-full group/card transition-all hover:border-[#00d2ff]/40 shadow-xl">
       <div className={`thumb bg-[#0f1116] border-b border-[#242830] relative overflow-hidden ${videoRatio === '16:9' ? 'aspect-video' : 'aspect-[9/16]'}`}>
         {videoUrl ? (
           <video 
@@ -467,7 +462,9 @@ const Card: React.FC<{
           </a>
         )}
       </div>
-    </motion.article>
+        </article>
+      </HoloFoilCard>
+    </motion.div>
   );
 };
 

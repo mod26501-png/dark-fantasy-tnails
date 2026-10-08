@@ -22,6 +22,7 @@ import {
     compressImageForFirestore
 } from '../services/firebaseService';
 import { getAllSessionsIDB } from '../services/idbStorage';
+import { HoloFoilCard } from './HoloFoilCard';
 import { saveToHistory } from '../services/storageService';
 import { audioFX } from '../services/audioService';
 import type { GeneratedData } from '../types';
@@ -428,6 +429,7 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                         const isPublishing = publishingId === idKey;
 
                         return (
+                          <HoloFoilCard key={i} tier={i % 3 === 0 ? 'abyssal-gold' : i % 2 === 0 ? 'void-cosmic' : 'blood-foil'} rarity={88} showBadge={true} className="h-full">
                             <div 
                                 key={i} 
                                 className="group bg-[#111318] border border-[#242830] rounded-2xl overflow-hidden hover:border-[#00d2ff]/40 transition-all hover-blood shadow-xl flex flex-col justify-between"
@@ -489,7 +491,8 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                                         </button>
                                     )}
                                 </div>
-                            </div>
+                                </div>
+                          </HoloFoilCard>
                         );
                     })}
 
