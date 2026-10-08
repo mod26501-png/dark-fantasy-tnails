@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Connectivity test probe
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    // User's private generation history & sessions
+    match /users/{userId}/sessions/{sessionId} {
+      allow read, write, create, update, delete: if true;
+    }
+
+    // User's private saved Codex relics
+    match /users/{userId}/relics/{relicId} {
+      allow read, write, create, update, delete: if true;
+    }
+
+    // All user documents and subcollections
+    match /users/{userId}/{document=**} {
+      allow read, write, create, update, delete: if true;
+    }
+
+    // Public community abyssal gallery
+    match /public_gallery/{sessionId} {
+      allow read, write, create, update, delete: if true;
+    }
+
+    // Any nested public gallery resources
+    match /public_gallery/{document=**} {
+      allow read, write, create, update, delete: if true;
+    }
+  }
+}

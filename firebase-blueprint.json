@@ -1,0 +1,67 @@
+{
+  "entities": {
+    "ManifestationSession": {
+      "title": "ManifestationSession",
+      "description": "A dark fantasy relic generation session with prompt metadata, tone, and cards.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The user ID who forged this session." },
+        "mainTitle": { "type": "string", "description": "Title of the manifested grimoire." },
+        "archetype": { "type": "string", "description": "Category or theme archetype." },
+        "tone": { "type": "string", "description": "Tone and aesthetic description." },
+        "userIdea": { "type": "string", "description": "Original raw input prompt from the user." },
+        "bannerImageUrl": { "type": "string", "description": "URL or base64 raster of the series banner." },
+        "cards": {
+          "type": "array",
+          "description": "Array of relic cards belonging to this manifestation.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "prompt": { "type": "string" },
+              "description": { "type": "string" },
+              "imageUrl": { "type": "string" },
+              "stats": {
+                "type": "object",
+                "properties": {
+                  "power": { "type": "number" },
+                  "darkness": { "type": "number" },
+                  "rarity": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "mainTitle", "createdAt"]
+    },
+    "SavedRelic": {
+      "title": "SavedRelic",
+      "description": "An individual legendary relic saved to the user's permanent Codex.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The user who owns this relic." },
+        "title": { "type": "string", "description": "Name of the relic." },
+        "description": { "type": "string", "description": "Lore or function of the relic." },
+        "image": { "type": "string", "description": "Image data for the relic." },
+        "savedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "image", "savedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": "ManifestationSession",
+      "description": "Historical generation sessions for a user."
+    },
+    "/users/{userId}/relics/{relicId}": {
+      "schema": "SavedRelic",
+      "description": "User saved relics in their eternal Codex."
+    },
+    "/public_gallery/{sessionId}": {
+      "schema": "ManifestationSession",
+      "description": "Public community showcase of abyssal relics."
+    }
+  }
+}

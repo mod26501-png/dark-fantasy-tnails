@@ -1,0 +1,121 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  body {
+    background-color: #0b0b0f;
+    color: #e8e6e3;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+/* === BASE TITLE (PREMIUM ABYSSAL CHROME & POINTED SPIKES) === */
+.codex-title {
+  font-family: 'New Rocker', 'Metal Mania', cursive;
+  text-transform: uppercase;
+  color: #fff;
+  letter-spacing: 0.05em;
+  background: linear-gradient(180deg, 
+    #ffffff 0%, 
+    #ffffff 45%, 
+    #e2e8f0 49%, 
+    #0b1329 50%, 
+    #1e293b 52%, 
+    #0f172a 65%, 
+    #475569 80%, 
+    #ffffff 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  position: relative;
+  display: inline-block;
+  text-rendering: optimizeLegibility;
+}
+
+/* Occult Blood Glow and Aura */
+.blood-aura {
+  box-shadow: 0 0 35px rgba(141, 26, 26, 0.45);
+}
+
+.blood-drop {
+  position: fixed;
+  top: -20px;
+  left: var(--drop-left, 50%);
+  width: 4px;
+  height: 22px;
+  background: linear-gradient(to bottom, transparent, #8d1a1a, #ff0000);
+  border-radius: 0 0 4px 4px;
+  opacity: 0.7;
+  filter: drop-shadow(0 0 8px #ff0000);
+  animation: bloodDrip var(--drop-duration, 5s) linear infinite;
+  pointer-events: none;
+  z-index: 12;
+}
+
+@keyframes bloodDrip {
+  0% { transform: translateY(-10%); opacity: 0; }
+  20% { opacity: 0.95; }
+  85% { opacity: 0.95; }
+  100% { transform: translateY(115vh); opacity: 0; }
+}
+
+/* Blood Ritual Theme Animations & Effects */
+@keyframes bloodPulseSlow {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+.animate-blood-pulse {
+  animation: bloodPulseSlow 4.5s ease-in-out infinite;
+}
+
+.blood-ritual-vignette {
+  background: radial-gradient(circle at 50% 50%, transparent 35%, rgba(141, 26, 26, 0.45) 80%, rgba(50, 2, 2, 0.9) 100%);
+}
+
+.blood-ritual-active {
+  --ritual-glow: rgba(255, 0, 0, 0.5);
+}
+
+.blood-ritual-active .hover-blood:hover {
+  box-shadow: 0 0 25px rgba(255, 0, 0, 0.6) !important;
+  border-color: #ff0000 !important;
+}
+
+/* Custom Occult Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090b0e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #242830;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8d1a1a;
+}
+
+/* Angelic Agent Styling & Keyframes */
+.angelic-agent, .angelic {
+  color: #ffd27f;
+  text-shadow: 0 0 12px rgba(255, 215, 100, 0.8);
+  animation: angelicPulse 1.6s infinite ease-in-out;
+  cursor: pointer;
+}
+
+@keyframes angelicPulse {
+  0% { text-shadow: 0 0 8px rgba(255, 215, 100, 0.6); }
+  50% { text-shadow: 0 0 18px rgba(255, 255, 200, 1); }
+  100% { text-shadow: 0 0 6px rgba(255, 215, 100, 0.5); }
+}

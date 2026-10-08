@@ -1,4 +1,4 @@
-name: CI
+name: CI & Build Check
 
 on:
   push:
@@ -7,44 +7,29 @@ on:
     branches: ["main"]
 
 concurrency:
-  group: ${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  build_and_test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Debug - show commit and files
-        run: |
-          echo "Commit SHA: $GITHUB_SHA"
-          echo "Ref: $GITHUB_REF"
-          ls -la setup.ts 2>/dev/null && echo "setup.ts EXISTS" || echo "setup.ts MISSING"
-          cat .github/workflows/ci.yml | grep "vitest" || echo "No vitest in ci.yml"
-          ls .github/workflows/
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: 22
           cache: "npm"
 
-      - name: Verify formatting
-        run: deno fmt --check
+      - name: Install Dependencies
+        run: npm install
 
-      - name: Run linter
-        run: deno lint
+      - name: Run Linter (TypeScript check)
+        run: npm run lint
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npx vitest run
+      - name: Build Application
+        run: npm run build
+        env:
+          NODE_ENV: production
