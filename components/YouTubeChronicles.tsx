@@ -41,7 +41,7 @@ export const YouTubeChronicles: React.FC<YouTubeChroniclesProps> = ({ onBack, on
     const [selectedFeatured, setSelectedFeatured] = useState<YouTubeVideo>(FALLBACK_CHRONICLES[0]);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [isPlayingInline, setIsPlayingInline] = useState<boolean>(false);
-    const [uploadAccount, setUploadAccount] = useState<string>('rchurchnextstep@gmail.com');
+    const [uploadAccount, setUploadAccount] = useState<string>('thedemoncodex@gmail.com');
     
     // Modal Player State
     const [modalVideo, setModalVideo] = useState<YouTubeVideo | null>(null);
@@ -738,7 +738,8 @@ Respond in strictly valid JSON format matching this exact schema:
                                             onChange={(e) => setUploadAccount(e.target.value)}
                                             className="bg-[#111318] border border-[#242830] text-[#e8e6e3] rounded px-2 py-1 text-xs focus:outline-none focus:border-[#ff0000]"
                                         >
-                                            <option value="rchurchnextstep@gmail.com">rchurchnextstep@gmail.com (Active)</option>
+                                            <option value="thedemoncodex@gmail.com">thedemoncodex@gmail.com (Official)</option>
+                                            <option value="rchurchnextstep@gmail.com">rchurchnextstep@gmail.com</option>
                                             <option value="chooser">Google Account Chooser (Pick Account)...</option>
                                             <option value="default">Default Browser Session</option>
                                         </select>

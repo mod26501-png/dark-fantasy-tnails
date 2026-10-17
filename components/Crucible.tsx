@@ -30,7 +30,7 @@ export const Crucible: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const [aspectRatio, setAspectRatio] = useState<AllowedAspectRatio>('1:1');
     const [imageSize, setImageSize] = useState<'1K' | '2K' | '4K'>('1K');
     const [videoRatio, setVideoRatio] = useState<'16:9' | '9:16'>('16:9');
-    const [youtubeAccount, setYoutubeAccount] = useState<string>('rchurchnextstep@gmail.com');
+    const [youtubeAccount, setYoutubeAccount] = useState<string>('thedemoncodex@gmail.com');
     
     // Scratch generation state
     const [scratchPrompt, setScratchPrompt] = useState<string>('');
@@ -504,7 +504,8 @@ export const Crucible: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                                             onChange={(e) => setYoutubeAccount(e.target.value)}
                                                             className="bg-[#111318] border border-[#242830] text-[#e8e6e3] rounded px-1.5 py-0.5 text-[10px] focus:outline-none focus:border-[#ff0000]"
                                                         >
-                                                            <option value="rchurchnextstep@gmail.com">rchurchnextstep@gmail.com (Active)</option>
+                                                            <option value="thedemoncodex@gmail.com">thedemoncodex@gmail.com (Official)</option>
+                                                            <option value="rchurchnextstep@gmail.com">rchurchnextstep@gmail.com</option>
                                                             <option value="chooser">Google Account Chooser (Pick)...</option>
                                                             <option value="default">Default Browser Session</option>
                                                         </select>
