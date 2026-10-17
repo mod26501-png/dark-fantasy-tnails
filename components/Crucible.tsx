@@ -30,6 +30,7 @@ export const Crucible: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const [aspectRatio, setAspectRatio] = useState<AllowedAspectRatio>('1:1');
     const [imageSize, setImageSize] = useState<'1K' | '2K' | '4K'>('1K');
     const [videoRatio, setVideoRatio] = useState<'16:9' | '9:16'>('16:9');
+    const [youtubeAccount, setYoutubeAccount] = useState<string>('rchurchnextstep@gmail.com');
     
     // Scratch generation state
     const [scratchPrompt, setScratchPrompt] = useState<string>('');
@@ -490,19 +491,56 @@ export const Crucible: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                                 </button>
                                             </div>
 
-                                            <div className="bg-[#09090f] p-3 rounded-xl border border-[#242830] flex flex-col justify-between">
+                                            <div className="bg-[#09090f] p-3 rounded-xl border border-[#242830] flex flex-col justify-between gap-2.5">
                                                 <div>
                                                     <span className="text-[9px] text-[#70757e] font-bold uppercase">Direct YouTube Upload</span>
                                                     <p className="text-[#9aa0a6] text-[11px] mt-1">Download video then open YouTube Studio to publish to @thedemoncodex.</p>
                                                 </div>
-                                                <a
-                                                    href="https://studio.youtube.com/channel/upload"
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="mt-3 py-1.5 px-3 bg-[#ff0000] hover:bg-[#cc0000] text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow"
-                                                >
-                                                    <span>Open YouTube Studio Upload ↗</span>
-                                                </a>
+                                                <div className="flex flex-col gap-1.5">
+                                                    <div className="flex items-center justify-between text-[10px]">
+                                                        <span className="text-[#70757e] font-medium">Account:</span>
+                                                        <select
+                                                            value={youtubeAccount}
+                                                            onChange={(e) => setYoutubeAccount(e.target.value)}
+                                                            className="bg-[#111318] border border-[#242830] text-[#e8e6e3] rounded px-1.5 py-0.5 text-[10px] focus:outline-none focus:border-[#ff0000]"
+                                                        >
+                                                            <option value="rchurchnextstep@gmail.com">rchurchnextstep@gmail.com (Active)</option>
+                                                            <option value="chooser">Google Account Chooser (Pick)...</option>
+                                                            <option value="default">Default Browser Session</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <a
+                                                            href={
+                                                                youtubeAccount === 'chooser'
+                                                                    ? 'https://accounts.google.com/AccountChooser?service=youtube&continue=https%3A%2F%2Fstudio.youtube.com%2Fchannel%2Fupload'
+                                                                    : youtubeAccount === 'default'
+                                                                    ? 'https://studio.youtube.com/channel/upload'
+                                                                    : `https://studio.youtube.com/channel/upload?authuser=${encodeURIComponent(youtubeAccount)}`
+                                                            }
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="flex-1 py-1.5 px-3 bg-[#ff0000] hover:bg-[#cc0000] text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow"
+                                                        >
+                                                            <span>Open Studio Upload ↗</span>
+                                                        </a>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const url = youtubeAccount === 'chooser'
+                                                                    ? 'https://accounts.google.com/AccountChooser?service=youtube&continue=https%3A%2F%2Fstudio.youtube.com%2Fchannel%2Fupload'
+                                                                    : `https://studio.youtube.com/channel/upload?authuser=${encodeURIComponent(youtubeAccount)}`;
+                                                                navigator.clipboard.writeText(url);
+                                                                alert("Copied YouTube Studio link to clipboard! (You can paste this in Microsoft Edge)");
+                                                            }}
+                                                            title="Copy link to paste into Edge or another browser"
+                                                            className="py-1.5 px-2 bg-[#1a1d24] hover:bg-[#242830] text-[#9aa0a6] hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center gap-1"
+                                                        >
+                                                            <Copy className="w-3 h-3" />
+                                                            <span>Edge Link</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

@@ -41,6 +41,7 @@ export const YouTubeChronicles: React.FC<YouTubeChroniclesProps> = ({ onBack, on
     const [selectedFeatured, setSelectedFeatured] = useState<YouTubeVideo>(FALLBACK_CHRONICLES[0]);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [isPlayingInline, setIsPlayingInline] = useState<boolean>(false);
+    const [uploadAccount, setUploadAccount] = useState<string>('rchurchnextstep@gmail.com');
     
     // Modal Player State
     const [modalVideo, setModalVideo] = useState<YouTubeVideo | null>(null);
@@ -728,16 +729,53 @@ Respond in strictly valid JSON format matching this exact schema:
                                     </p>
                                 </div>
 
-                                {/* One-Click Action: Open YouTube Upload */}
-                                <a
-                                    href="https://studio.youtube.com/channel/upload"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="w-full py-3 bg-[#111318] border border-[#ff0000]/60 hover:bg-[#ff0000] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 hover:shadow-[0_0_20px_#ff0000]"
-                                >
-                                    <Tv className="w-4 h-4" />
-                                    <span>Open YouTube Studio Upload ↗</span>
-                                </a>
+                                {/* One-Click Action: Open YouTube Upload with Account Selector */}
+                                <div className="w-full flex flex-col gap-2">
+                                    <div className="flex items-center justify-between text-xs text-[#9aa0a6] bg-[#0c0d12] p-2 rounded-lg border border-[#242830]">
+                                        <span className="text-[11px] font-semibold text-[#70757e]">Target Google Account:</span>
+                                        <select
+                                            value={uploadAccount}
+                                            onChange={(e) => setUploadAccount(e.target.value)}
+                                            className="bg-[#111318] border border-[#242830] text-[#e8e6e3] rounded px-2 py-1 text-xs focus:outline-none focus:border-[#ff0000]"
+                                        >
+                                            <option value="rchurchnextstep@gmail.com">rchurchnextstep@gmail.com (Active)</option>
+                                            <option value="chooser">Google Account Chooser (Pick Account)...</option>
+                                            <option value="default">Default Browser Session</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <a
+                                            href={
+                                                uploadAccount === 'chooser'
+                                                    ? 'https://accounts.google.com/AccountChooser?service=youtube&continue=https%3A%2F%2Fstudio.youtube.com%2Fchannel%2Fupload'
+                                                    : uploadAccount === 'default'
+                                                    ? 'https://studio.youtube.com/channel/upload'
+                                                    : `https://studio.youtube.com/channel/upload?authuser=${encodeURIComponent(uploadAccount)}`
+                                            }
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex-1 py-3 bg-[#111318] border border-[#ff0000]/60 hover:bg-[#ff0000] text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 hover:shadow-[0_0_20px_#ff0000]"
+                                        >
+                                            <Tv className="w-4 h-4" />
+                                            <span>Open YouTube Studio Upload ↗</span>
+                                        </a>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const url = uploadAccount === 'chooser'
+                                                    ? 'https://accounts.google.com/AccountChooser?service=youtube&continue=https%3A%2F%2Fstudio.youtube.com%2Fchannel%2Fupload'
+                                                    : `https://studio.youtube.com/channel/upload?authuser=${encodeURIComponent(uploadAccount)}`;
+                                                navigator.clipboard.writeText(url);
+                                                alert("Copied YouTube Studio link to clipboard! (You can paste this in Edge or any other browser window).");
+                                            }}
+                                            title="Copy link to paste in Edge or another browser"
+                                            className="py-3 px-3 bg-[#111318] border border-[#242830] hover:border-[#ff0000] text-[#9aa0a6] hover:text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                            <span>Edge Link</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
