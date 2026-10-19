@@ -8,6 +8,10 @@ import { playBladeClang } from "../src/utils/soundEffects";
 import { HoloFoilCard } from '../components/HoloFoilCard';
 import { generateSingleRelicScrollPdf } from '../services/ancientScrollPdfService';
 import { DarkSealsBar } from '../components/DarkSealsBar';
+import { GrimoireViewer } from '../components/GrimoireViewer';
+import { NecroConstellation } from '../components/NecroConstellation';
+import { LayoutGrid, BookOpen, Compass } from 'lucide-react';
+import { audioFX } from '../services/audioService';
 
 interface RelicItem {
   id?: string;
@@ -26,6 +30,7 @@ export default function RelicCodex({ onBack }: RelicCodexProps) {
   const [driveExportStatus, setDriveExportStatus] = useState<string | null>(null);
   const [driveFolderLink, setDriveFolderLink] = useState<string | null>(null);
   const [isLiveSync, setIsLiveSync] = useState(false);
+  const [codexViewMode, setCodexViewMode] = useState<"grid" | "grimoire" | "constellation">("grid");
 
   useEffect(() => {
     // 1. Load initial storage: check IndexedDB first, then localStorage

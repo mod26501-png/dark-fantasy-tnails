@@ -276,13 +276,13 @@ export interface FirestoreRelicItem {
  */
 export const compressImageForFirestore = async (
   imageUrl: string,
-  maxWidth = 800,
-  quality = 0.82
+  maxWidth = 640,
+  quality = 0.70
 ): Promise<string> => {
   if (!imageUrl) return "";
 
   // If it's already a tiny string or SVG, return as is
-  if (imageUrl.startsWith("data:image/svg") || imageUrl.length < 50000) {
+  if (imageUrl.startsWith("data:image/svg") || imageUrl.length < 35000) {
     return imageUrl;
   }
 
@@ -293,13 +293,17 @@ export const compressImageForFirestore = async (
 
   // If in non-browser environment
   if (typeof window === "undefined" || typeof document === "undefined") {
-    return imageUrl.length > 700000 ? imageUrl.slice(0, 700000) : imageUrl;
+    return imageUrl.length > 250000 ? imageUrl.slice(0, 250000) : imageUrl;
   }
 
   return new Promise((resolve) => {
     try {
       const img = new Image();
-      img.crossOrigin = "anonymous";
+      // CRITICAL: Do NOT set crossOrigin on data: URIs! Setting crossOrigin on data: URIs
+      // causes Chromium and WebKit browsers to taint the canvas and throw a SecurityError.
+      if (!imageUrl.startsWith("data:")) {
+        img.crossOrigin = "anonymous";
+      }
 
       img.onload = () => {
         try {
@@ -320,7 +324,7 @@ export const compressImageForFirestore = async (
           const ctx = canvas.getContext("2d");
 
           if (!ctx) {
-            resolve(imageUrl.length > 700000 ? imageUrl.slice(0, 700000) : imageUrl);
+            resolve(imageUrl.length > 200000 ? "" : imageUrl);
             return;
           }
 
@@ -328,28 +332,29 @@ export const compressImageForFirestore = async (
           ctx.imageSmoothingQuality = "high";
           ctx.drawImage(img, 0, 0, width, height);
 
-          const compressed = canvas.toDataURL("image/jpeg", quality);
+          let compressed = canvas.toDataURL("image/jpeg", quality);
+          // Secondary pass if high-detail image still exceeds 130KB
+          if (compressed.length > 130000) {
+            compressed = canvas.toDataURL("image/jpeg", 0.52);
+          }
           resolve(compressed);
         } catch (canvasErr) {
-          console.warn("Canvas compression failed, falling back:", canvasErr);
-          resolve(imageUrl.length > 700000 ? imageUrl.slice(0, 700000) : imageUrl);
+          console.warn("Canvas compression failed, falling back safely:", canvasErr);
+          resolve(imageUrl.length > 200000 ? "" : imageUrl);
         }
       };
 
       img.onerror = () => {
-        resolve(imageUrl);
+        resolve(imageUrl.length > 200000 ? "" : imageUrl);
       };
 
       img.src = imageUrl;
     } catch {
-      resolve(imageUrl);
+      resolve(imageUrl.length > 200000 ? "" : imageUrl);
     }
   });
 };
 
-/**
- * Save a generated grimoire manifestation to Cloud Firestore (in user sessions, and optionally in public gallery)
- */
 export const saveManifestationToFirestore = async (
   data: GeneratedData, 
   userIdea?: string,
@@ -358,11 +363,11 @@ export const saveManifestationToFirestore = async (
 ): Promise<string> => {
   try {
     const userId = await getEffectiveUserId();
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const sessionId = data.id || `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     // Compress banner image and all card images to guarantee total document payload fits safely under 1MB
     const compressedBanner = data.bannerImageUrl
-      ? await compressImageForFirestore(data.bannerImageUrl, 900, 0.78)
+      ? await compressImageForFirestore(data.bannerImageUrl, 640, 0.70)
       : "";
 
     const compressedCards = await Promise.all(
@@ -373,12 +378,13 @@ export const saveManifestationToFirestore = async (
         caption: c.caption || c.description || "",
         description: c.description || c.caption || "",
         tags: Array.isArray(c.tags) ? c.tags : [],
-        imageUrl: c.imageUrl ? await compressImageForFirestore(c.imageUrl, 700, 0.75) : "",
+        imageUrl: c.imageUrl ? await compressImageForFirestore(c.imageUrl, 560, 0.68) : "",
         stats: (c as any).stats || { power: 80, darkness: 85, rarity: 90 },
       }))
     );
 
-    const sessionDoc = {
+    const sessionDoc: any = {
+      id: sessionId,
       userId,
       mainTitle: data.mainTitle || "The Demon Codex",
       archetype: data.archetype || "Unknown Relic",
@@ -392,6 +398,16 @@ export const saveManifestationToFirestore = async (
       createdAt: serverTimestamp(),
     };
 
+    // Safety check: Guarantee total Firestore document size stays comfortably below 950KB
+    const totalPayloadSize = JSON.stringify(sessionDoc).length;
+    if (totalPayloadSize > 950000) {
+      console.warn(`Payload size exceeds 950KB (${totalPayloadSize} bytes), optimizing card images for Firestore...`);
+      sessionDoc.cards = sessionDoc.cards.map((c: any) => ({
+        ...c,
+        imageUrl: c.imageUrl && c.imageUrl.length > 90000 ? "" : c.imageUrl
+      }));
+    }
+
     // 1. Save in user's private sessions
     const userSessionRef = doc(db, "users", userId, "sessions", sessionId);
     await setDoc(userSessionRef, sessionDoc);
@@ -402,6 +418,7 @@ export const saveManifestationToFirestore = async (
       await setDoc(publicGalleryRef, sessionDoc);
     }
 
+    console.info(`Successfully inscribed manifestation ${sessionId} to Firestore (public: ${publishToPublic})`);
     return sessionId;
   } catch (err) {
     console.error("Failed to save manifestation to Firestore:", err);
@@ -415,10 +432,10 @@ export const saveManifestationToFirestore = async (
 export const publishSessionToPublicGallery = async (data: GeneratedData, ritualTheme?: string): Promise<string> => {
   try {
     const userId = await getEffectiveUserId();
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const sessionId = data.id || `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     const compressedBanner = data.bannerImageUrl
-      ? await compressImageForFirestore(data.bannerImageUrl, 900, 0.78)
+      ? await compressImageForFirestore(data.bannerImageUrl, 640, 0.70)
       : "";
 
     const compressedCards = await Promise.all(
@@ -429,12 +446,13 @@ export const publishSessionToPublicGallery = async (data: GeneratedData, ritualT
         caption: c.caption || c.description || "",
         description: c.description || c.caption || "",
         tags: Array.isArray(c.tags) ? c.tags : [],
-        imageUrl: c.imageUrl ? await compressImageForFirestore(c.imageUrl, 700, 0.75) : "",
+        imageUrl: c.imageUrl ? await compressImageForFirestore(c.imageUrl, 560, 0.68) : "",
         stats: (c as any).stats || { power: 80, darkness: 85, rarity: 90 },
       }))
     );
 
-    const sessionDoc = {
+    const sessionDoc: any = {
+      id: sessionId,
       userId,
       mainTitle: data.mainTitle || "The Demon Codex",
       archetype: data.archetype || "Relic Series",
@@ -442,8 +460,19 @@ export const publishSessionToPublicGallery = async (data: GeneratedData, ritualT
       userIdea: (data as any).userIdea || "",
       bannerImageUrl: compressedBanner,
       cards: compressedCards,
+      darkSeals: data.darkSeals || { blood: 0, void: 0, spark: 0, soul: 0 },
+      ritualTheme: ritualTheme || data.ritualTheme || "",
+      ritualDate: data.ritualDate || (ritualTheme ? getTodayRitualDateKey() : ""),
       createdAt: serverTimestamp(),
     };
+
+    const totalPayloadSize = JSON.stringify(sessionDoc).length;
+    if (totalPayloadSize > 950000) {
+      sessionDoc.cards = sessionDoc.cards.map((c: any) => ({
+        ...c,
+        imageUrl: c.imageUrl && c.imageUrl.length > 90000 ? "" : c.imageUrl
+      }));
+    }
 
     const publicGalleryRef = doc(db, "public_gallery", sessionId);
     await setDoc(publicGalleryRef, sessionDoc);
@@ -454,9 +483,6 @@ export const publishSessionToPublicGallery = async (data: GeneratedData, ritualT
   }
 };
 
-/**
- * Fetch generation history from Cloud Firestore
- */
 export const fetchUserHistoryFromFirestore = async (): Promise<GeneratedData[]> => {
   try {
     const userId = await getEffectiveUserId();
@@ -514,7 +540,16 @@ export const fetchPublicGalleryFromFirestore = async (): Promise<GeneratedData[]
 
     return snapshot.docs.map((docSnap) => {
       const d = docSnap.data();
+      const rawSeals = d.darkSeals || {};
+      const darkSeals: DarkSeals = {
+        blood: typeof rawSeals.blood === 'number' ? rawSeals.blood : 0,
+        void: typeof rawSeals.void === 'number' ? rawSeals.void : 0,
+        spark: typeof rawSeals.spark === 'number' ? rawSeals.spark : 0,
+        soul: typeof rawSeals.soul === 'number' ? rawSeals.soul : 0,
+      };
+
       return {
+        id: docSnap.id,
         mainTitle: d.mainTitle || "The Demon Codex",
         archetype: d.archetype || "Relic Series",
         tone: d.tone || "Dark Fantasy",
@@ -531,6 +566,9 @@ export const fetchPublicGalleryFromFirestore = async (): Promise<GeneratedData[]
         })),
         negativePrompts: d.negativePrompts || [],
         remixSuggestions: d.remixSuggestions || [],
+        darkSeals,
+        ritualTheme: d.ritualTheme || "",
+        ritualDate: d.ritualDate || "",
       } as GeneratedData;
     });
   } catch (err) {
@@ -539,9 +577,6 @@ export const fetchPublicGalleryFromFirestore = async (): Promise<GeneratedData[]
   }
 };
 
-/**
- * Save an individual relic to the user's permanent Cloud Firestore Codex
- */
 export const saveRelicToFirestore = async (relic: { image: string; title: string; description: string }): Promise<void> => {
   try {
     const userId = await getEffectiveUserId();

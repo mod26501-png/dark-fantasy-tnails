@@ -170,6 +170,10 @@ export const PricingTiers: React.FC<PricingTiersProps> = ({
                 <span>Continuous Cloud Codex &amp; History Sync</span>
               </li>
               <li className="flex items-start gap-2.5">
+                <span className="text-[#c084fc] text-sm">📜</span>
+                <span><strong>3D Grimoire of the Damned</strong> interactive tome &amp; UV Necrotic Inks</span>
+              </li>
+              <li className="flex items-start gap-2.5">
                 <span className="text-[#a855f7] text-sm">⚡</span>
                 <span>Crucible Video Ritual Access</span>
               </li>
@@ -226,6 +230,10 @@ export const PricingTiers: React.FC<PricingTiersProps> = ({
               <li className="flex items-start gap-2.5">
                 <span className="text-[#ff2a2a] text-sm">🔥</span>
                 <span><strong>Unlimited Angelic &amp; Seraphic Transmutations</strong></span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="text-[#ff4d4d] text-sm">🌌</span>
+                <span><strong>Living Necro-Constellation Graph</strong> &amp; AI Canon Chronicle Synthesis</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-[#ff2a2a] text-sm">🔥</span>

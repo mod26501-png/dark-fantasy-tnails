@@ -173,7 +173,7 @@ High-fidelity render with dark ambient lighting, cinematic 8k resolution, intric
 
 # PowerShell Local Agent Invocation with Tier-Preservation Timeout
 Write-Host "[*] Teleporting prompt to Denomic Local Agent..." -ForegroundColor Red
-Invoke-RestMethod -Uri "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$env:GEMINI_API_KEY" \`
+Invoke-RestMethod -Uri "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=$env:GEMINI_API_KEY" \`
   -Method POST \`
   -Headers @{ "Content-Type" = "application/json" } \`
   -Body (@{ contents = @(@{ parts = @(@{ text = $Prompt }) }) } | ConvertTo-Json -Depth 5)`;
@@ -755,7 +755,7 @@ Invoke-RestMethod -Uri "https://generativelanguage.googleapis.com/v1beta/models/
                                     <button
                                         onClick={() => handleCopy(`$idea = "Demon Codex Relic: Abyssal Blade of Cinders"
 $body = @{ contents = @(@{ parts = @(@{ text = "Generate 3 dark fantasy relic prompts for: $idea in 8k cinematic format." }) }) } | ConvertTo-Json -Depth 5
-$response = Invoke-RestMethod -Uri "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$env:GEMINI_API_KEY" -Method POST -Headers @{ "Content-Type" = "application/json" } -Body $body
+$response = Invoke-RestMethod -Uri "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=$env:GEMINI_API_KEY" -Method POST -Headers @{ "Content-Type" = "application/json" } -Body $body
 $response.candidates[0].content.parts[0].text`, 'ps-oneliner')}
                                         className="px-3 py-1.5 rounded-lg bg-[#1e232d] hover:bg-[#00d2ff] hover:text-black text-[#00d2ff] text-xs font-bold transition-all flex items-center gap-1.5"
                                     >
@@ -778,7 +778,7 @@ $body = @{
 } | ConvertTo-Json -Depth 5
 
 # Execute direct REST call to Gemini
-$response = Invoke-RestMethod -Uri "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$env:GEMINI_API_KEY" \`
+$response = Invoke-RestMethod -Uri "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=$env:GEMINI_API_KEY" \`
   -Method POST \`
   -Headers @{ "Content-Type" = "application/json" } \`
   -Body $body

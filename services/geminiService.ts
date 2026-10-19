@@ -253,7 +253,7 @@ export const validateApiKey = async (testKey: string): Promise<{ valid: boolean;
             }
         });
         const res = await testAi.models.generateContent({
-            model: 'gemini-3.5-flash',
+            model: 'gemini-3.8-flash',
             contents: 'Test connection. Respond with OK.'
         });
         if (res.text) return { valid: true };
@@ -270,7 +270,7 @@ export const validateApiKey = async (testKey: string): Promise<{ valid: boolean;
             try {
                 const testAi = new GoogleGenAI({ apiKey: testKey.trim() });
                 const res = await testAi.models.generateContent({
-                    model: 'gemini-2.5-flash',
+                    model: 'gemini-3.8-flash',
                     contents: 'Test'
                 });
                 if (res.text) return { valid: true };
@@ -439,7 +439,7 @@ Instead, capture the premium, haunting dark fantasy aesthetic using atmospheric 
 - Use terms like 'gothic architecture', 'chiaroscuro shadows', 'amber embers', 'obsidian steel', 'smoke and fog'.
 Ensure the visual prompts are detailed, rich, and breathtaking, yet completely compliant with safety filters.`;
 
-    const modelName = useThinking ? 'gemini-3.1-pro-preview' : 'gemini-3.5-flash';
+    const modelName = useThinking ? 'gemini-3.1-pro-preview' : 'gemini-3.8-flash';
     const config: any = {
         responseMimeType: "application/json",
         responseSchema: responseSchema,
@@ -1133,7 +1133,7 @@ export const generateSoundscape = async (description: string): Promise<string> =
 export const analyzeLore = async (title: string, caption: string): Promise<string> => {
     const ai = getAiClient();
     const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.8-flash',
         contents: `Analyze this relic: "${title}". Description: "${caption}". Write a 2-sentence mysterious lore snippet.`,
     });
     return response.text || "Lore lost to time.";

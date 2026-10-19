@@ -1,6 +1,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { GeneratorForm } from './components/GeneratorForm';
+import { CinematicLanding } from './components/CinematicLanding';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { LoadingScreen } from './components/LoadingScreen';
 import { PromptCardSet } from './components/PromptCardSet';
@@ -20,7 +21,7 @@ import { AbyssalChoirSoundboard } from './components/AbyssalChoirSoundboard';
 import { audioFX } from './services/audioService';
 import RelicCodex from './pages/RelicCodex';
 import * as geminiService from './services/geminiService';
-import { saveToHistory as safeSaveToHistory } from './services/storageService';
+import { saveToHistory as safeSaveToHistory, saveToCodex } from './services/storageService';
 import { getUserSubscription, setUserSubscription, verifyCheckoutSession, UserSubscriptionInfo } from './services/stripeService';
 import { signInWithGoogle, signOutUser, onUserAuthStateChanged } from './services/firebaseService';
 import type { User } from 'firebase/auth';
@@ -102,7 +103,7 @@ const BloodDrops: React.FC<{ isBloodRitual?: boolean }> = ({ isBloodRitual = fal
 };
 
 const App: React.FC = () => {
-    const [view, setView] = useState<'forge' | 'gallery' | 'about' | 'crucible' | 'codex' | 'youtube' | 'studio' | 'ascend' | 'angelic' | 'angelic-agent'>('forge');
+    const [view, setView] = useState<'landing' | 'forge' | 'gallery' | 'about' | 'crucible' | 'codex' | 'youtube' | 'studio' | 'ascend' | 'angelic' | 'angelic-agent'>('landing');
     const [userInput, setUserInput] = useState<string>('');
     const [generatedData, setGeneratedData] = useState<GeneratedData | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -500,7 +501,9 @@ const App: React.FC = () => {
                 }
             }
 
+            const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
             const finalData: GeneratedData = {
+                id: sessionId,
                 ...textData,
                 mainTitle: 'The Demon Codex',
                 bannerImageUrl: imageResults['banner']?.imageUrl || geminiService.FAILED_IMAGE_PLACEHOLDER,
@@ -513,7 +516,20 @@ const App: React.FC = () => {
             };
 
             setGeneratedData(finalData);
+
+            // 1. Inscribe the entire manifestation session into History, IndexedDB, and Public Gallery (Cloud Firestore)
             saveToHistory(finalData, idea);
+
+            // 2. Automatically inscribe each valid manifested relic card into the permanent Codex
+            finalData.cards.forEach((card) => {
+                if (card.imageUrl && card.imageUrl !== geminiService.FAILED_IMAGE_PLACEHOLDER) {
+                    saveToCodex({
+                        image: card.imageUrl,
+                        title: card.title || 'Untitled Relic',
+                        description: card.caption || card.description || card.prompt || '',
+                    });
+                }
+            });
 
         } catch (err) {
             console.error(err);
@@ -659,6 +675,19 @@ const App: React.FC = () => {
 
                 {/* Center: Main navigation links in sleek horizontal pill container */}
                 <nav className="flex items-center gap-1 bg-[#0c0e14]/95 border border-[#242830] rounded-full p-1 shadow-[0_4px_30px_rgba(0,0,0,0.8)] overflow-x-auto no-scrollbar max-w-[42vw] md:max-w-none mx-2">
+                    <button
+                        onClick={() => { audioFX.playRuneChime(); setView('landing'); }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-300 flex items-center gap-1.5 border ${
+                            view === 'landing'
+                                ? 'bg-[#ff0000] text-white border-[#ff4d4d] shadow-[0_0_20px_rgba(255,0,0,0.7)] font-bold'
+                                : 'border-transparent text-[#cfd3d8] hover:text-[#ff4d4d] hover:border-[#ff0000]/70 hover:bg-[#8d1a1a]/20 hover:scale-105 active:scale-95'
+                        }`}
+                        title="Sanctum Landing & Canon Lore"
+                    >
+                        <span>📜</span>
+                        <span>Sanctum</span>
+                    </button>
+
                     <button
                         onClick={handleStartOver}
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-300 flex items-center gap-1.5 border ${
@@ -1083,6 +1112,21 @@ const App: React.FC = () => {
                 )}
                 {isLoading && <LoadingScreen message={loadingMessage} />}
                 
+                {!isLoading && view === 'landing' && (
+                    <CinematicLanding
+                        onEnterForge={() => {
+                            audioFX.playBladeClang();
+                            setView('forge');
+                        }}
+                        onNavigate={(targetView) => {
+                            audioFX.playRuneChime();
+                            setView(targetView);
+                        }}
+                        hasActiveSession={!!generatedData}
+                        onRestoreSession={() => setView('forge')}
+                    />
+                )}
+
                 {!isLoading && view === 'gallery' && (
                     <Gallery 
                         onBack={() => setView('forge')} 

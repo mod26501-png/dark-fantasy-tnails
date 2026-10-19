@@ -853,7 +853,7 @@ async function startServer() {
       return res.status(500).json({ error: "Gemini client not initialized on server" });
     }
 
-    const model = "gemini-3.5-flash";
+    const model = "gemini-3.8-flash";
     try {
       const banishNote = negativePrompt?.trim() 
         ? ` Strict Anathema (Banished elements): You MUST ensure the visual prompts avoid: "${negativePrompt.trim()}". Include these banished traits in the returned negativePrompts array.`
@@ -889,7 +889,7 @@ async function startServer() {
       return res.status(500).json({ error: "Gemini client not initialized on server" });
     }
 
-    const model = "gemini-3.5-flash";
+    const model = "gemini-3.8-flash";
     try {
       const systemInstruction = `You are the Angelic Agent and Seraphic Oracle of the Demon Codex. Your sacred mission is to transmute mortal concepts, shadow relics, or raw dark fantasy inputs into radiant, hyper-detailed Seraphic Masterpieces.
 Analyze the user's input concept and output valid JSON matching this schema:
