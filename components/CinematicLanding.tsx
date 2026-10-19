@@ -10,7 +10,11 @@ import {
   Volume2, 
   VolumeX,
   Scroll,
-  Crown
+  Crown,
+  Copy,
+  Check,
+  Maximize2,
+  ExternalLink
 } from 'lucide-react';
 import { audioFX } from '../services/audioService';
 
@@ -21,36 +25,77 @@ interface CinematicLandingProps {
   onRestoreSession?: () => void;
 }
 
-const FEATURED_RELICS = [
+export interface RelicSpecimen {
+  id: string;
+  title: string;
+  archetype: string;
+  rarity: string;
+  power: number;
+  glyph: string;
+  quote: string;
+  image: string;
+  tag: string;
+  aspect: string;
+  prompt: string;
+  color: string;
+}
+
+const FEATURED_RELICS: RelicSpecimen[] = [
   {
-    title: 'The Eclipse Cleaver',
-    archetype: 'Blood-Forged Armament',
+    id: 'epic-reveal',
+    title: 'Epic Reveal: The Slime Fiend',
+    archetype: 'YouTube Master Thumbnail',
+    rarity: 'Transcendent 8K',
+    power: 100,
+    glyph: '⚡',
+    quote: 'High-octane YouTube thumbnail alchemy — 3D blood-chrome typography, electric abyssal lightning, and bio-luminescent emerald dread bursting through the seal.',
+    image: '/relics/epic_reveal_thumbnail.jpg',
+    tag: 'YouTube Thumbnail Pro',
+    aspect: '16:9 Thumbnail',
+    prompt: 'Hyper-detailed epic dark fantasy YouTube thumbnail, hideous bio-luminescent green demon creature with sharp jagged teeth dripping acidic slime bursting through an ancient ornate blood-red runic crest seal, embossed 3D metallic chrome text reading "EPIC REVEAL by The Demon Codex", vivid electric crimson and sapphire lightning tendrils, cinematic hyper-contrast 8K, unreal engine 5 render.',
+    color: '#00ff66'
+  },
+  {
+    id: 'archon-warlord',
+    title: 'The Obsidian Archon',
+    archetype: 'Vampiric Sovereign',
     rarity: 'Mythic Occult',
+    power: 98,
+    glyph: '🩸',
+    quote: 'Clad in runic damascus plate and shredded midnight silk. His pale gaze pierced centuries of subterranean silence inside the cathedral crypt.',
+    image: '/relics/archon_warlord.jpg',
+    tag: 'Character Relic',
+    aspect: '16:9 Cinematic',
+    prompt: 'Pale bald vampire warlord in heavy ornate Damascus steel plate armor etched with glowing crimson elder runes, tattered black cape, standing in a vast ruined gothic cathedral with dust motes and a single dramatic shaft of cold moonlight from the vaulted ceiling, volumetric shadows, masterwork dark fantasy portrait, 8k resolution, cinematic lighting.',
+    color: '#ff2a2a'
+  },
+  {
+    id: 'crucible-cauldron',
+    title: 'The Crucible of Molten Runes',
+    archetype: 'Alchemical Hearth',
+    rarity: 'Elder Relic',
     power: 96,
-    glyph: '⚔️',
-    quote: 'Tempered in the dying embers of a blood sun, its obsidian edge cleaves the boundary between flesh and nether.',
-    image: '/demon-ai-1781131108810.jpg',
-    tag: 'Abyssal Weaponry'
+    glyph: '🔥',
+    quote: 'Elder Futhark runes carved into black iron, containing liquid fire and incandescent sparks from the heart of the Nether Forge.',
+    image: '/relics/crucible_cauldron.jpg',
+    tag: 'Alchemical Relic',
+    aspect: '16:9 Cinematic',
+    prompt: 'Massive heavy iron sacrificial cauldron engraved with glowing incandescent Elder Futhark runes along the rim, boiling molten lava and dancing volcanic flames with embers bursting into the dark misty air, ruined gothic stone arches under a pale crescent moon, dark fantasy alchemy atmosphere, raytraced cinematic 8k.',
+    color: '#ff6600'
   },
   {
-    title: 'Crown of the Obsidian Sovereign',
-    archetype: 'Monarch Relic',
-    rarity: 'Ascendant Gold',
+    id: 'abyssal-titan',
+    title: 'Malakor the Ruin Sovereign',
+    archetype: 'Celestial Demon King',
+    rarity: 'Apocalyptic Prime',
     power: 99,
-    glyph: '👑',
-    quote: 'Forged from petrified starlight and volcanic glass. Those who don the circlet hear the whispers of thousand fallen dynasties.',
-    image: '/demon-ai-1782459263710.png',
-    tag: 'Celestial Sovereign'
-  },
-  {
-    title: 'Grimoire of the Void Stalker',
-    archetype: 'Forbidden Canon',
-    rarity: 'Ancestral Relic',
-    power: 92,
-    glyph: '📜',
-    quote: 'Bound in sinew and midnight parchment. Every turn of its blood-sealed pages alters the tapestry of surrounding space.',
-    image: '/demon-ai-1781132284837.png',
-    tag: 'Occult Scriptures'
+    glyph: '⚡',
+    quote: 'Summoning crimson celestial lightning and molten meteors above gothic ramparts. Rendered in towering 9:16 vertical ratio for YouTube Shorts.',
+    image: '/relics/abyssal_titan.jpg',
+    tag: 'Vertical Short (9:16)',
+    aspect: '9:16 Shorts',
+    prompt: 'Towering winged demonic gargoyle king perched atop high gothic castle spires, golden ornamental armor with glowing red core, summoning red celestial lightning bolts and orbiting molten fire orbs from a cracked cavernous sky above, 9:16 vertical mobile aspect ratio, cinematic dark fantasy epic scale, 8K ultra detail.',
+    color: '#ff0055'
   }
 ];
 
@@ -83,6 +128,8 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
 }) => {
   const [activeChapter, setActiveChapter] = useState<string>('origin');
   const [selectedRelicIdx, setSelectedRelicIdx] = useState<number>(0);
+  const [inspectModalRelic, setInspectModalRelic] = useState<RelicSpecimen | null>(null);
+  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
   const [isAudioActive, setIsAudioActive] = useState<boolean>(() => audioFX.getState().masterDroneActive);
 
   const toggleSound = () => {
@@ -90,8 +137,16 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
     setIsAudioActive(audioFX.getState().masterDroneActive);
   };
 
+  const handleCopyPrompt = (relic: RelicSpecimen, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    navigator.clipboard.writeText(relic.prompt);
+    setCopiedPromptId(relic.id);
+    audioFX.playRuneChime();
+    setTimeout(() => setCopiedPromptId(null), 2500);
+  };
+
   return (
-    <div className="w-full flex flex-col items-center animate-fade-in relative z-20 pb-20">
+    <div className="w-full flex flex-col items-center animate-fade-in relative z-20 pb-28">
       
       {/* Top Atmospheric Action Bar */}
       <div className="w-full max-w-6xl px-4 pt-4 pb-2 flex justify-between items-center text-xs font-mono">
@@ -121,7 +176,7 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
             className="px-3 py-1.5 rounded-lg bg-[#111318] hover:bg-[#1b1f27] border border-[#242830] text-[#70757e] hover:text-white transition-all flex items-center gap-1 text-[10px]"
             title={isAudioActive ? 'Silence Abyssal Drone' : 'Ignite Abyssal Drone'}
           >
-            {isAudioActive ? <Volume2 className="w-3.5 h-3.5 text-[#ff4d4d]" /> : <VolumeX className="w-3.5 h-3.5" />}
+            {isAudioActive ? <Volume2 className="w-3.5 h-3.5 text-[#ff4d4d] animate-pulse" /> : <VolumeX className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline">{isAudioActive ? 'Ambient Sound ON' : 'Ambient Sound OFF'}</span>
           </button>
         </div>
@@ -130,10 +185,10 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
       {/* ========================================================
           HERO SECTION: THE DEMON CODEX MAJESTY
           ======================================================== */}
-      <section className="w-full max-w-5xl px-4 pt-10 pb-16 text-center flex flex-col items-center relative">
+      <section className="w-full max-w-5xl px-4 pt-8 pb-12 text-center flex flex-col items-center relative">
         
         {/* Sacred Tier Pill */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#8d1a1a]/30 via-[#111318] to-[#c26b3a]/30 border border-[#8d1a1a]/60 text-[#ff9999] text-[10px] font-mono tracking-[0.25em] uppercase mb-8 shadow-[0_0_25px_rgba(141,26,26,0.4)] backdrop-blur-md">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#8d1a1a]/30 via-[#111318] to-[#c26b3a]/30 border border-[#8d1a1a]/60 text-[#ff9999] text-[10px] font-mono tracking-[0.25em] uppercase mb-6 shadow-[0_0_25px_rgba(141,26,26,0.4)] backdrop-blur-md">
           <Flame className="w-3 h-3 text-[#ff4d4d] animate-pulse" />
           <span>Grimoire of Dark Art & Relic Vectors</span>
           <span className="w-1 h-1 rounded-full bg-[#ff4d4d]"></span>
@@ -155,12 +210,12 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
         </div>
 
         {/* Cinematic Subtitle */}
-        <p className="lightning-text text-lg sm:text-2xl max-w-2xl mx-auto leading-relaxed uppercase italic font-black tracking-wide mt-2 mb-10">
+        <p className="lightning-text text-lg sm:text-2xl max-w-2xl mx-auto leading-relaxed uppercase italic font-black tracking-wide mt-2 mb-8">
           Transmute Occult Ideations into 8K Cinematic Relics, Lore Scriptures & Veo 3.1 Motion.
         </p>
 
         {/* Primary Call-to-Action Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-4 w-full max-w-xl">
+        <div className="flex flex-wrap items-center justify-center gap-4 w-full max-w-xl mb-12">
           <button
             onClick={() => {
               audioFX.playBladeClang();
@@ -186,8 +241,62 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
           </button>
         </div>
 
+        {/* ========================================================
+            HERO MASTERPIECE SHOWCASE (Your Manifested Relic)
+            ======================================================== */}
+        <div className="w-full max-w-4xl p-1 rounded-3xl bg-gradient-to-b from-[#8d1a1a]/40 via-[#242830]/40 to-transparent shadow-[0_20px_60px_rgba(0,0,0,0.9)]">
+          <div className="relative rounded-[22px] overflow-hidden bg-[#0d0f14] border border-[#ff0000]/30 group">
+            <div className="relative aspect-[21/9] sm:aspect-[16/8] w-full overflow-hidden">
+              <img 
+                src="/relics/epic_reveal_thumbnail.jpg" 
+                alt="Epic Reveal by The Demon Codex" 
+                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#090b0e] via-transparent to-black/30"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60"></div>
+            </div>
+
+            {/* Overlay Bar on the Hero Image */}
+            <div className="absolute bottom-0 inset-x-0 p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 bg-gradient-to-t from-[#090b0e] via-[#090b0e]/80 to-transparent">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-[#ff0000] text-white tracking-widest uppercase">
+                    MASTER SHOWCASE
+                  </span>
+                  <span className="text-[10px] font-mono text-[#00d2ff] uppercase">
+                    16:9 • 8K Master Thumbnail
+                  </span>
+                </div>
+                <h3 className="text-lg sm:text-2xl font-black text-white uppercase tracking-tight italic drop-shadow">
+                  "Epic Reveal: The Slime Fiend"
+                </h3>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setInspectModalRelic(FEATURED_RELICS[0])}
+                  className="px-3 py-1.5 rounded-lg bg-black/60 hover:bg-black/90 border border-white/20 text-white text-xs font-mono flex items-center gap-1.5 backdrop-blur-md transition-all hover:scale-105"
+                >
+                  <Maximize2 className="w-3.5 h-3.5 text-[#00d2ff]" />
+                  <span>Inspect Specimen</span>
+                </button>
+                <button
+                  onClick={() => {
+                    audioFX.playBladeClang();
+                    onEnterForge();
+                  }}
+                  className="px-4 py-1.5 rounded-lg bg-[#ff0000] hover:bg-[#ff2222] text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_15px_rgba(255,0,0,0.6)] transition-all hover:scale-105"
+                >
+                  <span>Forge Similar</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Key Feature Telemetry Badges */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-3xl mt-14 pt-8 border-t border-[#242830]/80 text-left font-mono">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-4xl mt-12 pt-6 border-t border-[#242830]/80 text-left font-mono">
           <div className="p-3 rounded-xl bg-[#111318]/80 border border-[#242830]">
             <span className="text-[9px] uppercase tracking-wider text-[#70757e] block">Visual Model</span>
             <span className="text-xs font-bold text-white flex items-center gap-1.5 mt-0.5">
@@ -213,19 +322,19 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
           </div>
 
           <div className="p-3 rounded-xl bg-[#111318]/80 border border-[#242830]">
-            <span className="text-[9px] uppercase tracking-wider text-[#70757e] block">Archival Storage</span>
+            <span className="text-[9px] uppercase tracking-wider text-[#70757e] block">Archival Vault</span>
             <span className="text-xs font-bold text-white flex items-center gap-1.5 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
-              Firestore & IDB Vault
+              IndexedDB & Cloud
             </span>
           </div>
         </div>
       </section>
 
       {/* ========================================================
-          FEATURED RELIC SHOWCASE (INTERACTIVE SHOWCASE)
+          FEATURED RELIC SPECIMENS (YOUR MANIFESTED GALLERY)
           ======================================================== */}
-      <section className="w-full max-w-5xl px-4 py-12 border-t border-[#242830]/60">
+      <section className="w-full max-w-6xl px-4 py-12 border-t border-[#242830]/60">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
           <div>
             <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#ff4d4d] block mb-1 flex items-center gap-1.5">
@@ -235,49 +344,79 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
               Manifested Masterworks
             </h2>
           </div>
-          <p className="text-xs text-[#70757e] max-w-xs sm:text-right font-sans leading-relaxed">
-            Explore relics preserved within the eternal Codex vault. Each specimen features distinct archetypes, lore, and visual directives.
+          <p className="text-xs text-[#70757e] max-w-sm sm:text-right font-sans leading-relaxed">
+            Authentic dark fantasy relics forged directly in The Demon Codex. Click any relic to inspect full 8K details, prompt incantations, and dimensional directives.
           </p>
         </div>
 
-        {/* Relic Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* 4-Column Master Relic Grid with Real Images */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {FEATURED_RELICS.map((relic, idx) => (
             <div
-              key={relic.title}
+              key={relic.id}
               onClick={() => {
                 audioFX.playRuneChime();
                 setSelectedRelicIdx(idx);
+                setInspectModalRelic(relic);
               }}
-              className={`rounded-2xl border transition-all duration-300 p-5 flex flex-col justify-between cursor-pointer group bg-[#111318] ${
+              className={`rounded-2xl border transition-all duration-300 flex flex-col justify-between cursor-pointer group bg-[#111318] overflow-hidden hover:-translate-y-1 ${
                 selectedRelicIdx === idx 
-                  ? 'border-[#ff0000] shadow-[0_0_30px_rgba(255,0,0,0.35)] scale-[1.02]' 
-                  : 'border-[#242830] hover:border-[#ff4d4d]/50 hover:bg-[#141720]'
+                  ? 'border-[#ff0000] shadow-[0_0_30px_rgba(255,0,0,0.35)]' 
+                  : 'border-[#242830] hover:border-[#ff4d4d]/60 hover:shadow-[0_0_20px_rgba(0,0,0,0.8)]'
               }`}
             >
-              <div>
-                <div className="flex justify-between items-start mb-3">
-                  <span className="text-3xl">{relic.glyph}</span>
-                  <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-[#8d1a1a]/30 border border-[#8d1a1a] text-[#ff9999] uppercase font-bold tracking-wider">
+              {/* Image Container with Aspect Badge */}
+              <div className="relative w-full aspect-[16/10] overflow-hidden bg-black">
+                <img 
+                  src={relic.image} 
+                  alt={relic.title}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#111318] via-transparent to-black/20"></div>
+                
+                {/* Top Badges */}
+                <div className="absolute top-2.5 inset-x-2.5 flex justify-between items-center">
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-black/70 backdrop-blur-md border border-white/10 text-white font-bold">
+                    {relic.aspect}
+                  </span>
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-[#8d1a1a]/70 backdrop-blur-md border border-[#ff0000]/60 text-[#ffb3b3] uppercase font-bold tracking-wider">
                     {relic.rarity}
                   </span>
                 </div>
 
-                <h3 className="text-lg font-black text-white uppercase tracking-tight group-hover:text-[#ff4d4d] transition-colors mb-1">
-                  {relic.title}
-                </h3>
-                <span className="text-[10px] font-mono text-[#00d2ff] uppercase tracking-wider block mb-3">
-                  {relic.archetype}
-                </span>
-
-                <p className="text-xs text-[#cfd3d8] leading-relaxed italic border-l-2 border-[#8d1a1a]/60 pl-3 mb-4">
-                  "{relic.quote}"
-                </p>
+                {/* Inspect Action on Hover */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-[2px]">
+                  <span className="px-3 py-1.5 rounded-full bg-[#ff0000] text-white text-xs font-mono font-bold flex items-center gap-1.5 shadow-[0_0_15px_rgba(255,0,0,0.8)]">
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span>Inspect</span>
+                  </span>
+                </div>
               </div>
 
-              <div className="pt-3 border-t border-[#242830] flex justify-between items-center text-[10px] font-mono">
-                <span className="text-[#70757e]">{relic.tag}</span>
-                <span className="text-[#ffd27f] font-bold">PWR {relic.power}/100</span>
+              {/* Card Meta Content */}
+              <div className="p-4 flex-1 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-sm">{relic.glyph}</span>
+                    <span className="text-[10px] font-mono text-[#00d2ff] uppercase tracking-wider">
+                      {relic.archetype}
+                    </span>
+                  </div>
+
+                  <h3 className="text-base font-black text-white uppercase tracking-tight group-hover:text-[#ff4d4d] transition-colors mb-2 line-clamp-1">
+                    {relic.title}
+                  </h3>
+
+                  <p className="text-xs text-[#9aa0a6] leading-relaxed italic border-l-2 border-[#8d1a1a]/60 pl-2.5 mb-4 line-clamp-3">
+                    "{relic.quote}"
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-[#242830] flex justify-between items-center text-[10px] font-mono">
+                  <span className="text-[#70757e]">{relic.tag}</span>
+                  <span className="text-[#ffd27f] font-bold">PWR {relic.power}/100</span>
+                </div>
               </div>
             </div>
           ))}
@@ -285,7 +424,110 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
       </section>
 
       {/* ========================================================
-          CANON LORE SCRIPTURES (READABLE CHAPTERS SECTION)
+          INSPECT SPECIMEN MODAL
+          ======================================================== */}
+      {inspectModalRelic && (
+        <div 
+          onClick={() => setInspectModalRelic(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-3xl rounded-3xl bg-[#0e1017] border-2 border-[#ff0000]/50 shadow-[0_0_60px_rgba(255,0,0,0.3)] overflow-hidden flex flex-col max-h-[90vh]"
+          >
+            {/* Modal Image Header */}
+            <div className="relative w-full max-h-[50vh] overflow-hidden bg-black flex items-center justify-center">
+              <img 
+                src={inspectModalRelic.image} 
+                alt={inspectModalRelic.title}
+                className="w-full h-full object-contain max-h-[50vh]" 
+              />
+              <button 
+                onClick={() => setInspectModalRelic(null)}
+                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/70 hover:bg-black border border-white/20 text-white flex items-center justify-center text-sm font-bold transition-all"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto flex flex-col gap-4 font-sans">
+              <div className="flex flex-wrap justify-between items-start gap-2">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xl">{inspectModalRelic.glyph}</span>
+                    <span className="text-xs font-mono text-[#00d2ff] uppercase font-bold tracking-wider">
+                      {inspectModalRelic.archetype} &bull; {inspectModalRelic.aspect}
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tight">
+                    {inspectModalRelic.title}
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-md bg-[#8d1a1a]/30 border border-[#8d1a1a] text-[#ff9999] text-xs font-mono font-bold">
+                    {inspectModalRelic.rarity}
+                  </span>
+                  <span className="px-3 py-1 rounded-md bg-[#ffd27f]/10 border border-[#ffd27f]/30 text-[#ffd27f] text-xs font-mono font-bold">
+                    PWR {inspectModalRelic.power}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-sm text-[#d1d5db] italic border-l-2 border-[#ff0000] pl-3 leading-relaxed">
+                "{inspectModalRelic.quote}"
+              </p>
+
+              {/* Incantation Prompt Box */}
+              <div className="p-4 rounded-xl bg-[#06080b] border border-[#242830]">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[10px] font-mono text-[#70757e] uppercase tracking-wider">
+                    Sacred Inscription Prompt
+                  </span>
+                  <button
+                    onClick={(e) => handleCopyPrompt(inspectModalRelic, e)}
+                    className="text-xs font-mono text-[#00d2ff] hover:text-white flex items-center gap-1.5 transition-colors"
+                  >
+                    {copiedPromptId === inspectModalRelic.id ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-[#10b981]" />
+                        <span className="text-[#10b981]">Copied to Grimoire!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy Prompt</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs font-mono text-[#cfd3d8] leading-relaxed select-all">
+                  {inspectModalRelic.prompt}
+                </p>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex flex-wrap gap-3 pt-2 justify-end">
+                <button
+                  onClick={() => {
+                    setInspectModalRelic(null);
+                    audioFX.playBladeClang();
+                    onEnterForge();
+                  }}
+                  className="px-6 py-2.5 rounded-xl bg-[#ff0000] hover:bg-[#ff2222] text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(255,0,0,0.5)] transition-all"
+                >
+                  <Sword className="w-4 h-4" />
+                  <span>Forge in The Crucible</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          CANON LORE SCRIPTURES (PERMANENT READABLE SCRIPTURES)
           ======================================================== */}
       <section id="codex-lore-section" className="w-full max-w-5xl px-4 py-16 border-t border-[#242830]/60">
         <div className="text-center max-w-2xl mx-auto mb-12">
@@ -297,7 +539,7 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
             Lore & World-Building Canon
           </h2>
           <p className="text-xs text-[#9aa0a6] mt-2 leading-relaxed">
-            These scriptures are permanently chronicled here for all seekers to read, study, and contemplate without interruption.
+            These scriptures are permanently chronicled here for all seekers to read, study, and contemplate without disappearing.
           </p>
         </div>
 
@@ -318,10 +560,15 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
                     : 'bg-[#111318] border-[#242830] hover:border-[#70757e] hover:bg-[#141720]'
                 }`}
               >
-                <span className="text-[9px] font-mono uppercase tracking-widest text-[#c26b3a] font-bold">
-                  {chap.num}
-                </span>
-                <span className="text-xs font-black text-white uppercase tracking-tight">
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-mono text-[#c26b3a] uppercase font-bold tracking-widest">
+                    {chap.num}
+                  </span>
+                  {activeChapter === chap.id && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#c26b3a]"></span>
+                  )}
+                </div>
+                <span className="text-xs font-bold text-white tracking-wide">
                   {chap.title}
                 </span>
               </button>
