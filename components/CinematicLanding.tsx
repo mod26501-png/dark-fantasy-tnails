@@ -157,7 +157,18 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => {
+              audioFX.playRuneChime();
+              onNavigate('about');
+            }}
+            className="px-3 py-1.5 rounded-lg bg-[#111318] hover:bg-[#1f2430] border border-[#242830] hover:border-[#ff4d4d] text-[#ff7b7b] hover:text-white transition-all flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider"
+            title="Read About The Demon Codex & The Arch-Scribe"
+          >
+            <span>✧</span>
+            <span>About The Scribe</span>
+          </button>
           {hasActiveSession && onRestoreSession && (
             <button
               onClick={() => {
@@ -631,7 +642,7 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <div 
             onClick={() => {
               audioFX.playBladeClang();
@@ -701,6 +712,24 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
             </h4>
             <p className="text-xs text-[#70757e] mt-1.5 leading-relaxed">
               Acquire 4K wallpapers, sound loops, master prompt packs, and custom commission slots.
+            </p>
+          </div>
+
+          <div 
+            onClick={() => {
+              audioFX.playRuneChime();
+              onNavigate('about');
+            }}
+            className="p-5 rounded-2xl bg-[#111318] border border-[#242830] hover:border-[#ff4d4d] cursor-pointer hover:shadow-[0_0_25px_rgba(255,77,77,0.25)] hover:-translate-y-1 transition-all group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[#ff4d4d]/15 flex items-center justify-center text-xl mb-3 text-[#ff4d4d]">
+              ✧
+            </div>
+            <h4 className="text-sm font-black text-white uppercase tracking-tight group-hover:text-[#ff4d4d] transition-colors">
+              The Arch-Scribe (About)
+            </h4>
+            <p className="text-xs text-[#70757e] mt-1.5 leading-relaxed">
+              Discover the lore, system specs, Outlier AI background, and creator of The Demon Codex.
             </p>
           </div>
         </div>

@@ -686,111 +686,89 @@ async function startServer() {
 
   // Hardened Server-side Image Generation using process.env.DARK_FANTASY_API_KEY / process.env.GEMINI_API_KEY
   app.post("/api/gemini/generate-image", async (req, res) => {
-    const { prompt, aspectRatio = "1:1", imageSize = "1K", isStudioQuality = false } = req.body;
+    const { prompt, aspectRatio = "1:1", imageSize = "1K", isStudioQuality = false, apiKey: customBodyKey } = req.body;
     if (!prompt) {
       return res.status(400).json({ error: "Prompt is required" });
     }
 
-    const ai = getGeminiClient();
-    if (!ai) {
+    const clientKey = (req.headers["x-gemini-api-key"] as string) || customBodyKey || resolveDarkFantasyApiKey();
+    if (!clientKey) {
       return res.status(500).json({
         error: "Dark Fantasy server client not configured. Set DARK_FANTASY_API_KEY or GEMINI_API_KEY in the side panel.",
         code: "NO_API_KEY"
       });
     }
 
+    let ai: GoogleGenAI;
+    try {
+      ai = new GoogleGenAI({
+        apiKey: clientKey,
+        httpOptions: {
+          headers: { "User-Agent": "aistudio-build" },
+        },
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: "Failed to initialize Gemini client", code: "INIT_FAILED" });
+    }
+
     const validAspects = ["1:1", "16:9", "9:16", "4:3", "3:4"];
     const mappedAspect = validAspects.includes(aspectRatio) ? aspectRatio : "1:1";
-    const primaryModel = isStudioQuality ? "gemini-3-pro-image" : "gemini-3.1-flash-image";
-    const fallbackModel = "gemini-3.1-flash-lite-image";
+    const modelsToTry = isStudioQuality
+      ? ["gemini-3-pro-image", "gemini-3.1-flash-image", "gemini-3.1-flash-lite-image"]
+      : ["gemini-3.1-flash-image", "gemini-3.1-flash-lite-image", "gemini-2.5-flash-image"];
     const enhancedPrompt = `Atmospheric dark fantasy masterpiece: ${prompt}`;
 
-    try {
-      console.log(`[Gemini Server] Generating image with ${primaryModel}...`);
-      const response = await ai.models.generateContent({
-        model: primaryModel,
-        contents: { parts: [{ text: enhancedPrompt }] },
-        config: {
-          imageConfig: {
-            aspectRatio: mappedAspect as any,
-            imageSize: isStudioQuality ? (imageSize === "4K" ? "4K" : "2K") : "1K"
-          }
-        }
-      });
+    let lastErrMessage = "Image manifestation failed";
+    let lastStatus = 500;
 
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData?.data) {
-          return res.json({
-            success: true,
-            imageUrl: `data:image/png;base64,${part.inlineData.data}`,
-            modelUsed: primaryModel
-          });
-        }
-      }
-      throw new Error(`Model ${primaryModel} returned no image data`);
-    } catch (primaryErr: any) {
-      console.warn(`[Gemini Server] Primary model ${primaryModel} failed:`, primaryErr?.message || primaryErr);
-      const isPrepaymentError =
-        primaryErr?.status === 402 ||
-        primaryErr?.code === 402 ||
-        String(primaryErr?.message).includes("402") ||
-        String(primaryErr?.message).includes("prepayment") ||
-        String(primaryErr?.message).includes("prepay");
-
-      if (isPrepaymentError) {
-        return res.status(402).json({
-          error: "Your prepayment credits are depleted. Go to AI Studio at https://ai.studio/projects to manage your project and billing.",
-          code: "402_PREPAYMENT_DEPLETED",
-          billingUrl: "https://ai.studio/projects"
-        });
-      }
-
-      const isQuotaError =
-        primaryErr?.status === 429 ||
-        primaryErr?.code === 429 ||
-        String(primaryErr?.message).includes("429") ||
-        String(primaryErr?.message).includes("RESOURCE_EXHAUSTED");
-
-      if (isQuotaError) {
-        return res.status(429).json({
-          error: "RESOURCE_EXHAUSTED: Monthly spending cap or rate quota reached on Gemini API.",
-          code: "429_RESOURCE_EXHAUSTED"
-        });
-      }
-
-      // Try fallback model
+    for (let idx = 0; idx < modelsToTry.length; idx++) {
+      const modelName = modelsToTry[idx];
       try {
-        console.log(`[Gemini Server] Retrying with fallback ${fallbackModel}...`);
-        const fallbackResponse = await ai.models.generateContent({
-          model: fallbackModel,
+        console.log(`[Gemini Server] Generating image with ${modelName} (${idx + 1}/${modelsToTry.length})...`);
+        const response = await ai.models.generateContent({
+          model: modelName,
           contents: { parts: [{ text: enhancedPrompt }] },
           config: {
             imageConfig: {
               aspectRatio: mappedAspect as any,
-              imageSize: "1K"
+              imageSize: (isStudioQuality && modelName === "gemini-3-pro-image") ? (imageSize === "4K" ? "4K" : "2K") : "1K"
             }
           }
         });
 
-        for (const part of fallbackResponse.candidates?.[0]?.content?.parts || []) {
+        for (const part of response.candidates?.[0]?.content?.parts || []) {
           if (part.inlineData?.data) {
             return res.json({
               success: true,
               imageUrl: `data:image/png;base64,${part.inlineData.data}`,
-              modelUsed: fallbackModel
+              modelUsed: modelName
             });
           }
         }
-        throw new Error(`Fallback model ${fallbackModel} returned no image parts`);
-      } catch (fallbackErr: any) {
-        console.error("[Gemini Server] Fallback image generation also failed:", fallbackErr);
-        const status = fallbackErr?.status === 429 || fallbackErr?.code === 429 ? 429 : 500;
-        return res.status(status).json({
-          error: fallbackErr?.message || "Image manifestation failed",
-          code: fallbackErr?.status || fallbackErr?.code || "IMAGE_MANIFEST_FAILED"
-        });
+      } catch (err: any) {
+        console.warn(`[Gemini Server] Model ${modelName} failed:`, err?.message || err);
+        lastErrMessage = err?.message || String(err);
+        const isPrepayment = err?.status === 402 || err?.code === 402 || lastErrMessage.includes("prepayment");
+        if (isPrepayment) {
+          return res.status(402).json({
+            error: "Your prepayment credits are depleted. Go to AI Studio at https://ai.studio/projects to manage your project and billing.",
+            code: "402_PREPAYMENT_DEPLETED",
+            billingUrl: "https://ai.studio/projects"
+          });
+        }
+        if (err?.status === 429 || err?.code === 429 || lastErrMessage.includes("429") || lastErrMessage.includes("RESOURCE_EXHAUSTED")) {
+          lastStatus = 429;
+        }
+        if (idx < modelsToTry.length - 1) {
+          await new Promise(r => setTimeout(r, 1200));
+        }
       }
     }
+
+    return res.status(lastStatus).json({
+      error: lastErrMessage,
+      code: lastStatus === 429 ? "429_RESOURCE_EXHAUSTED" : "IMAGE_MANIFEST_FAILED"
+    });
   });
 
   // Hardened Server-side Image Editing

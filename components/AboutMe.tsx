@@ -143,20 +143,21 @@ Looking forward to connecting!
             <div className="max-w-4xl mx-auto bg-[#111318]/80 backdrop-blur-xl border-2 border-[#8d1a1a]/40 rounded-[3rem] p-8 md:p-16 relative shadow-[0_0_100px_rgba(141,26,26,0.1)]">
                 <BloodDrops />
                 
+                <div className="flex justify-between items-center mb-6 w-full">
+                    <button
+                        onClick={onBack}
+                        className="px-3.5 py-1.5 rounded-lg bg-[#111318] hover:bg-[#1c202a] border border-[#242830] hover:border-[#ff4d4d] text-[#8d929b] hover:text-white text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5"
+                    >
+                        <span>← Back to Forge</span>
+                    </button>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#70757e]">Codex Specification</span>
+                </div>
                 <header className="mb-12 text-center flex flex-col items-center">
                     <div className="codex-title-wrapper !m-0 !mt-6 sm:!mt-8 !mb-3 !w-auto">
                         <h2 className="codex-title text-4xl sm:text-5xl font-normal leading-none drop-shadow-[0_10px_15px_rgba(0,0,0,0.95)] select-none uppercase tracking-wide relative inline-block mt-3" data-text="THE ARCH-SCRIBE">
                             THE ARCH-SCRIBE
                             <span className="rune">✦</span>
                             <span className="rune">✙</span>
-                            <span className="rune">✦</span>
-                            <span className="rune">✙</span>
-                            <span className="blood-drop" style={{ '--drop-left': '12%', '--drop-duration': '3.2s' } as React.CSSProperties}></span>
-                            <span className="blood-drop" style={{ '--drop-left': '28%', '--drop-duration': '4.5s' } as React.CSSProperties}></span>
-                            <span className="blood-drop" style={{ '--drop-left': '48%', '--drop-duration': '2.8s' } as React.CSSProperties}></span>
-                            <span className="blood-drop" style={{ '--drop-left': '64%', '--drop-duration': '5.1s' } as React.CSSProperties}></span>
-                            <span className="blood-drop" style={{ '--drop-left': '80%', '--drop-duration': '3.7s' } as React.CSSProperties}></span>
-                            <span className="blood-drop" style={{ '--drop-left': '94%', '--drop-duration': '4.2s' } as React.CSSProperties}></span>
                         </h2>
                     </div>
                     <div className="inline-block py-1 px-4 rounded-full bg-[#8d1a1a]/20 border border-[#8d1a1a]/40 text-[#ff4d4d] text-xs font-black tracking-widest uppercase italic mt-4">

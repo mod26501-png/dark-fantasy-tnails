@@ -475,6 +475,10 @@ const App: React.FC = () => {
             for (let i = 0; i < imagePrompts.length; i++) {
                 const p = imagePrompts[i];
                 setLoadingMessage(`Manifesting Relic ${i + 1}/${imagePrompts.length}...`);
+                if (i > 0) {
+                    // Pacing delay between sequential image requests to avoid hitting burst rate limits
+                    await new Promise(res => setTimeout(res, 1200));
+                }
                 try {
                     const result = await geminiService.generateImageWithDiagnostics(p.prompt, p.aspectRatio, p.size, p.isStudioQuality);
                     imageResults[p.type] = result;
@@ -778,6 +782,19 @@ const App: React.FC = () => {
                         <span className="drop-shadow-[0_0_8px_rgba(255,210,127,0.8)]">👼</span>
                         <span className="hidden sm:inline">Angelic</span> Agent
                     </button>
+
+                    <button 
+                        onClick={() => { audioFX.playRuneChime(); setView('about'); }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-300 flex items-center gap-1.5 border ${
+                            view === 'about' 
+                                ? 'bg-[#ff4d4d] text-white border-[#ff4d4d] shadow-[0_0_22px_rgba(255,77,77,0.7)] font-bold' 
+                                : 'border-transparent text-[#cfd3d8] hover:text-[#ff4d4d] hover:border-[#ff4d4d]/70 hover:bg-[#ff4d4d]/15 hover:shadow-[0_0_22px_rgba(255,77,77,0.65)] hover:scale-105 active:scale-95'
+                        }`}
+                        title="About The Demon Codex & System Specifications"
+                    >
+                        <span className={view === 'about' ? 'text-white' : 'text-[#ff4d4d] drop-shadow-[0_0_8px_rgba(255,77,77,0.8)]'}>✧</span>
+                        <span>About</span>
+                    </button>
                 </nav>
 
                 {/* Right side: User actions and high-priority triggers */}
@@ -1021,7 +1038,7 @@ const App: React.FC = () => {
                         title="About The Demon Codex & System Specifications"
                     >
                         <span>✧</span>
-                        <span>The Scribe</span>
+                        <span>About / Scribe</span>
                     </button>
 
                     <button

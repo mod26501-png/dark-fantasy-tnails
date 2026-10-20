@@ -472,6 +472,10 @@ class AbyssalChoirEngine {
      * Heavy metallic blade unsheathe & crisp click
      * Triggered on "GENERATE RELICS" and "TRANSMUTE"
      */
+    public playBladeClang(): void {
+        this.playBladeUnsheathe();
+    }
+
     public playBladeUnsheathe(): void {
         if (this.state.sfxMuted) return;
         const ctx = this.initContext();

@@ -74,7 +74,16 @@ export async function withTransientRetry<T>(
             const errMsg = (err?.message || String(err)).toLowerCase();
             const status = err?.status || err?.code;
             
+            const isQuota = 
+                status === 429 ||
+                status === "RESOURCE_EXHAUSTED" ||
+                errMsg.includes("429") ||
+                errMsg.includes("resource_exhausted") ||
+                errMsg.includes("rate limit") ||
+                errMsg.includes("quota");
+
             const isTransient = 
+                isQuota ||
                 status === 503 || 
                 status === "UNAVAILABLE" || 
                 errMsg.includes("503") || 
@@ -85,8 +94,10 @@ export async function withTransientRetry<T>(
                 errMsg.includes("network");
 
             if (isTransient && attempt < maxRetries) {
-                const delay = baseDelayMs * Math.pow(2, attempt);
-                console.warn(`Transient API error encountered (${err?.message || status}). Retrying attempt ${attempt + 1}/${maxRetries} in ${delay}ms...`);
+                const delay = isQuota 
+                    ? Math.max(2500, baseDelayMs) * Math.pow(1.8, attempt)
+                    : baseDelayMs * Math.pow(2, attempt);
+                console.warn(`Transient/Rate-limit API error encountered (${err?.message || status}). Retrying attempt ${attempt + 1}/${maxRetries} in ${Math.round(delay)}ms...`);
                 await new Promise(res => setTimeout(res, delay));
                 continue;
             }
@@ -475,8 +486,10 @@ export const generateImageWithDiagnostics = async (
     imageSize: '1K' | '2K' | '4K' = '1K',
     isStudioQuality: boolean = false
 ): Promise<GenerateImageResult> => {
-    const primaryModel = isStudioQuality ? 'gemini-3-pro-image' : 'gemini-3.1-flash-image';
     const cleanPrompt = sanitizeImagePrompt(prompt);
+    const candidateModels = isStudioQuality 
+        ? ['gemini-3-pro-image', 'gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image']
+        : ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'gemini-2.5-flash-image'];
 
     // Check image cache first
     const cacheKey = `${cleanPrompt}_${aspectRatio}_${imageSize}_${isStudioQuality}`;
@@ -489,16 +502,23 @@ export const generateImageWithDiagnostics = async (
         };
     }
 
-    // 1. Try server-side hardened endpoint first (accesses GEMINI_API_KEY from environment)
+    // 1. Try server-side hardened endpoint first
+    const userCustomKey = getUserApiKey();
     try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (userCustomKey) {
+            headers['x-gemini-api-key'] = userCustomKey;
+        }
+
         const serverRes = await fetch('/api/gemini/generate-image', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
                 prompt: cleanPrompt,
                 aspectRatio,
                 imageSize,
-                isStudioQuality
+                isStudioQuality,
+                apiKey: userCustomKey || undefined
             })
         });
 
@@ -520,30 +540,19 @@ export const generateImageWithDiagnostics = async (
                         hasError: true,
                         rawError: errData.error || "402: Your prepayment credits are depleted. Image generation requires billing credits at https://ai.studio/projects.",
                         statusCode: "402_PREPAYMENT_DEPLETED",
-                        modelName: primaryModel,
+                        modelName: candidateModels[0],
                         promptAttempted: cleanPrompt,
                         timestamp: new Date().toLocaleTimeString()
                     }
                 };
             }
-            if (serverRes.status === 429 || errData.code === '429_RESOURCE_EXHAUSTED') {
-                return {
-                    imageUrl: FAILED_IMAGE_PLACEHOLDER,
-                    diagnostic: {
-                        hasError: true,
-                        rawError: errData.error || "429 RESOURCE_EXHAUSTED: Monthly spending cap or rate quota reached on Gemini API.",
-                        statusCode: "429_RESOURCE_EXHAUSTED",
-                        modelName: primaryModel,
-                        promptAttempted: cleanPrompt,
-                        timestamp: new Date().toLocaleTimeString()
-                    }
-                };
-            }
+            console.warn("Server image endpoint returned non-200 (" + serverRes.status + "), falling back to client-side engine:", errData);
         }
     } catch (serverErr) {
-        console.warn("Server image proxy route notice, checking client fallback:", serverErr);
+        console.warn("Server image proxy route notice, falling back to client-side manifestation:", serverErr);
     }
 
+    // 2. Client-side manifestation with multi-model fallback chain and transient backoff
     const key = getApiKey();
     if (!key) {
         return {
@@ -552,7 +561,7 @@ export const generateImageWithDiagnostics = async (
                 hasError: true,
                 rawError: "API key is missing or unselected. Gemini image generation requires a valid Gemini API key.",
                 statusCode: "403_KEY_REQUIRED",
-                modelName: primaryModel,
+                modelName: candidateModels[0],
                 promptAttempted: cleanPrompt,
                 timestamp: new Date().toLocaleTimeString()
             }
@@ -564,180 +573,84 @@ export const generateImageWithDiagnostics = async (
     let lastErrorTrace = "";
     let lastStatusCode: string | number = "UNKNOWN_ERROR";
 
-    // 1. Try primary image generation model
-    try {
-        console.log(`Attempting image generation with model: ${primaryModel}`);
+    for (let mIdx = 0; mIdx < candidateModels.length; mIdx++) {
+        const currentModel = candidateModels[mIdx];
+        try {
+            console.log(`[Demon Codex Forge] Invoking image engine: ${currentModel} (${mIdx + 1}/${candidateModels.length})...`);
+            const targetSize = (isStudioQuality && currentModel === 'gemini-3-pro-image') ? imageSize : '1K';
+            
+            const response = await withTransientRetry(async () => {
+                return await ai.models.generateContent({
+                    model: currentModel,
+                    contents: { parts: [{ text: `Atmospheric dark fantasy masterpiece: ${cleanPrompt}` }] },
+                    config: {
+                        imageConfig: { aspectRatio: mappedAspect, imageSize: targetSize }
+                    },
+                });
+            }, 2, 2000);
 
-        const response = await withTransientRetry(async () => {
-            return await ai.models.generateContent({
-                model: primaryModel,
-                contents: { parts: [{ text: `Atmospheric dark fantasy masterpiece: ${cleanPrompt}` }] },
-                config: {
-                    imageConfig: { aspectRatio: mappedAspect, imageSize }
-                },
-            });
-        }, 2, 1500);
-        
-        for (const part of response.candidates?.[0]?.content?.parts || []) {
-            if (part.inlineData?.data) {
-                console.log(`Successfully generated image using: ${primaryModel}`);
-                const imgUrl = `data:image/png;base64,${part.inlineData.data}`;
-                setCachedImage(cacheKey, imgUrl);
+            for (const part of response.candidates?.[0]?.content?.parts || []) {
+                if (part.inlineData?.data) {
+                    console.log(`Successfully manifested relic image using ${currentModel}`);
+                    const imgUrl = `data:image/png;base64,${part.inlineData.data}`;
+                    setCachedImage(cacheKey, imgUrl);
+                    return {
+                        imageUrl: imgUrl,
+                        diagnostic: { hasError: false, modelName: currentModel }
+                    };
+                }
+            }
+
+            const finishReason = response.candidates?.[0]?.finishReason;
+            lastErrorTrace = `Model (${currentModel}) completed without image payload. Finish reason: ${finishReason || 'NO_PARTS'}`;
+            lastStatusCode = finishReason || "NO_IMAGE_PARTS";
+        } catch (error: any) {
+            console.warn(`Engine [${currentModel}] notice:`, error?.message || error);
+            lastErrorTrace = formatGeminiError(error);
+            lastStatusCode = error?.status || error?.code || "PRIMARY_ERROR";
+
+            const errMessage = (error?.message || "").toLowerCase();
+            if (
+                error?.code === 402 ||
+                error?.status === 402 ||
+                errMessage.includes("prepayment") ||
+                errMessage.includes("prepay") ||
+                errMessage.includes("credits are depleted")
+            ) {
                 return {
-                    imageUrl: imgUrl,
-                    diagnostic: { hasError: false }
+                    imageUrl: FAILED_IMAGE_PLACEHOLDER,
+                    diagnostic: {
+                        hasError: true,
+                        rawError: "402: Your prepayment credits are depleted. Gemini image generation models require billing credits enabled on your project at https://ai.studio/projects.",
+                        statusCode: "402_PREPAYMENT_DEPLETED",
+                        modelName: currentModel,
+                        promptAttempted: cleanPrompt,
+                        timestamp: new Date().toLocaleTimeString()
+                    }
                 };
             }
-        }
-        
-        const finishReason = response.candidates?.[0]?.finishReason;
-        lastErrorTrace = `Primary model (${primaryModel}) completed without image payload. Finish reason: ${finishReason || 'NO_PARTS'}`;
-        lastStatusCode = finishReason || "NO_IMAGE_PARTS";
-    } catch (error: any) {
-        console.warn("Primary image generation failed, checking fallback...", error);
-        lastErrorTrace = formatGeminiError(error);
-        lastStatusCode = error?.status || error?.code || "PRIMARY_ERROR";
-        
-        const errMessage = (error?.message || "").toLowerCase();
-        if (
-            error?.code === 402 ||
-            error?.status === 402 ||
-            errMessage.includes("prepayment") ||
-            errMessage.includes("prepay") ||
-            errMessage.includes("credits are depleted")
-        ) {
-            return {
-                imageUrl: FAILED_IMAGE_PLACEHOLDER,
-                diagnostic: {
-                    hasError: true,
-                    rawError: "402: Your prepayment credits are depleted. Gemini image generation models require billing credits enabled on your project at https://ai.studio/projects.",
-                    statusCode: "402_PREPAYMENT_DEPLETED",
-                    modelName: primaryModel,
-                    promptAttempted: cleanPrompt,
-                    timestamp: new Date().toLocaleTimeString()
-                }
-            };
-        }
 
-        if (
-            error?.status === "RESOURCE_EXHAUSTED" ||
-            error?.code === 429 ||
-            errMessage.includes("429") ||
-            errMessage.includes("spending cap") ||
-            errMessage.includes("resource_exhausted")
-        ) {
-            return {
-                imageUrl: FAILED_IMAGE_PLACEHOLDER,
-                diagnostic: {
-                    hasError: true,
-                    rawError: lastErrorTrace,
-                    statusCode: "429_RESOURCE_EXHAUSTED",
-                    modelName: primaryModel,
-                    promptAttempted: cleanPrompt,
-                    timestamp: new Date().toLocaleTimeString()
-                }
-            };
-        }
-
-        if (
-            error?.status === "PERMISSION_DENIED" || 
-            errMessage.includes("403") || 
-            errMessage.includes("api_key") || 
-            errMessage.includes("apikey") || 
-            errMessage.includes("unauthorized") ||
-            errMessage.includes("credentials")
-        ) {
-            return {
-                imageUrl: FAILED_IMAGE_PLACEHOLDER,
-                diagnostic: {
-                    hasError: true,
-                    rawError: `PERMISSION_DENIED: ${lastErrorTrace}`,
-                    statusCode: "403_PERMISSION_DENIED",
-                    modelName: primaryModel,
-                    promptAttempted: cleanPrompt,
-                    timestamp: new Date().toLocaleTimeString()
-                }
-            };
-        }
-    }
-
-    // 2. Fallback to gemini-3.1-flash-lite-image
-    const fallbackModel = 'gemini-3.1-flash-lite-image';
-    try {
-        console.log(`Attempting fallback image generation with: ${fallbackModel}`);
-
-        const response = await withTransientRetry(async () => {
-            return await ai.models.generateContent({
-                model: fallbackModel,
-                contents: { parts: [{ text: `Atmospheric dark fantasy masterpiece: ${cleanPrompt}` }] },
-                config: {
-                    imageConfig: { aspectRatio: mappedAspect }
-                },
-            });
-        }, 2, 2000);
-        
-        for (const part of response.candidates?.[0]?.content?.parts || []) {
-            if (part.inlineData?.data) {
-                console.log(`Successfully generated image using fallback: ${fallbackModel}`);
-                const imgUrl = `data:image/png;base64,${part.inlineData.data}`;
-                setCachedImage(cacheKey, imgUrl);
+            if (
+                error?.status === "PERMISSION_DENIED" &&
+                (errMessage.includes("leaked") || errMessage.includes("api_key was reported as leaked"))
+            ) {
                 return {
-                    imageUrl: imgUrl,
-                    diagnostic: { hasError: false }
+                    imageUrl: FAILED_IMAGE_PLACEHOLDER,
+                    diagnostic: {
+                        hasError: true,
+                        rawError: "API Key was reported as leaked and revoked by Google. Please enter a fresh active API key in settings.",
+                        statusCode: "403_KEY_REVOKED",
+                        modelName: currentModel,
+                        promptAttempted: cleanPrompt,
+                        timestamp: new Date().toLocaleTimeString()
+                    }
                 };
             }
-        }
 
-        const finishReason = response.candidates?.[0]?.finishReason;
-        const fallbackMsg = `Fallback (${fallbackModel}) completed without image payload. Finish reason: ${finishReason || 'NO_PARTS'}`;
-        lastErrorTrace = `[Primary ${primaryModel}]: ${lastErrorTrace}\n[Fallback ${fallbackModel}]: ${fallbackMsg}`;
-        lastStatusCode = finishReason || lastStatusCode;
-    } catch (fallbackError: any) {
-        console.error("Fallback image generation also failed:", fallbackError);
-        const fallbackMsg = formatGeminiError(fallbackError);
-        lastErrorTrace = `[Primary ${primaryModel} Error]: ${lastErrorTrace}\n[Fallback ${fallbackModel} Error]: ${fallbackMsg}`;
-        lastStatusCode = fallbackError?.status || fallbackError?.code || lastStatusCode;
-
-        const errMessage = (fallbackError?.message || "").toLowerCase();
-        if (
-            fallbackError?.status === "RESOURCE_EXHAUSTED" ||
-            fallbackError?.code === 429 ||
-            errMessage.includes("429") ||
-            errMessage.includes("spending cap") ||
-            errMessage.includes("resource_exhausted")
-        ) {
-            return {
-                imageUrl: FAILED_IMAGE_PLACEHOLDER,
-                diagnostic: {
-                    hasError: true,
-                    rawError: fallbackMsg,
-                    statusCode: "429_RESOURCE_EXHAUSTED",
-                    modelName: fallbackModel,
-                    promptAttempted: cleanPrompt,
-                    timestamp: new Date().toLocaleTimeString()
-                }
-            };
-        }
-
-        if (
-            fallbackError?.status === "PERMISSION_DENIED" || 
-            errMessage.includes("403") || 
-            errMessage.includes("api_key") || 
-            errMessage.includes("apikey") || 
-            errMessage.includes("unauthorized") ||
-            errMessage.includes("credentials")
-        ) {
-            return {
-                imageUrl: FAILED_IMAGE_PLACEHOLDER,
-                diagnostic: {
-                    hasError: true,
-                    rawError: `PERMISSION_DENIED: ${lastErrorTrace}`,
-                    statusCode: "403_PERMISSION_DENIED",
-                    modelName: `${primaryModel} / ${fallbackModel}`,
-                    promptAttempted: cleanPrompt,
-                    timestamp: new Date().toLocaleTimeString()
-                }
-            };
+            // Brief pause before trying fallback model to let rate limiter breathe
+            if (mIdx < candidateModels.length - 1) {
+                await new Promise(r => setTimeout(r, 1200));
+            }
         }
     }
 
@@ -745,9 +658,9 @@ export const generateImageWithDiagnostics = async (
         imageUrl: FAILED_IMAGE_PLACEHOLDER,
         diagnostic: {
             hasError: true,
-            rawError: lastErrorTrace || "Image failed to manifest due to filter suppression or network disconnect.",
+            rawError: lastErrorTrace || "Image failed to manifest across available engine tiers.",
             statusCode: lastStatusCode,
-            modelName: `${primaryModel} -> ${fallbackModel}`,
+            modelName: candidateModels.join(' -> '),
             promptAttempted: cleanPrompt,
             timestamp: new Date().toLocaleTimeString()
         }
