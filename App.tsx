@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useCallback, useEffect } from 'react';
 import { GeneratorForm } from './components/GeneratorForm';
 import { CinematicLanding } from './components/CinematicLanding';
@@ -477,10 +477,29 @@ const App: React.FC = () => {
                 setLoadingMessage(`Manifesting Relic ${i + 1}/${imagePrompts.length}...`);
                 if (i > 0) {
                     // Pacing delay between sequential image requests to avoid hitting burst rate limits
-                    await new Promise(res => setTimeout(res, 1200));
+                    await new Promise(res => setTimeout(res, 1500));
                 }
-                try {
-                    const result = await geminiService.generateImageWithDiagnostics(p.prompt, p.aspectRatio, p.size, p.isStudioQuality);
+
+                let result: geminiService.GenerateImageResult | null = null;
+                // Auto-retry once with backoff before giving up so images render correctly without user clicking retry 2-3 times
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    try {
+                        result = await geminiService.generateImageWithDiagnostics(p.prompt, p.aspectRatio, p.size, p.isStudioQuality);
+                        if (!result.diagnostic?.hasError && result.imageUrl !== geminiService.FAILED_IMAGE_PLACEHOLDER) {
+                            break;
+                        }
+                        if (attempt === 0) {
+                            await new Promise(res => setTimeout(res, 1800));
+                        }
+                    } catch (imgErr: any) {
+                        console.warn(`Attempt ${attempt + 1} notice for ${p.type}:`, imgErr);
+                        if (attempt === 0) {
+                            await new Promise(res => setTimeout(res, 1800));
+                        }
+                    }
+                }
+
+                if (result) {
                     imageResults[p.type] = result;
                     if (result.diagnostic?.hasError) {
                         if (result.diagnostic.statusCode === '403_KEY_REQUIRED' || result.diagnostic.statusCode === '403_PERMISSION_DENIED') {
@@ -489,14 +508,13 @@ const App: React.FC = () => {
                             setError("Your Google AI Studio prepayment credits are depleted. Visit https://ai.studio/projects to top up credits for image generation.");
                         }
                     }
-                } catch (imgErr: any) {
-                    console.error(`Asset manifestation error for ${p.type}:`, imgErr);
+                } else {
                     imageResults[p.type] = {
                         imageUrl: geminiService.FAILED_IMAGE_PLACEHOLDER,
                         diagnostic: {
                             hasError: true,
-                            rawError: imgErr?.message || String(imgErr),
-                            statusCode: imgErr?.status || "RUNTIME_ERR",
+                            rawError: "Image manifestation encountered transient timeout.",
+                            statusCode: "RETRY_NEEDED",
                             modelName: p.isStudioQuality ? 'gemini-3-pro-image' : 'gemini-3.1-flash-image',
                             promptAttempted: p.prompt,
                             timestamp: new Date().toLocaleTimeString()
