@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import { uploadFileToDrive } from '../services/driveService';
 import { motion, AnimatePresence } from 'motion/react';
-import { Scroll, Download, CheckCircle, X, Sparkles } from 'lucide-react';
+import { Scroll, Download, CheckCircle, X, Sparkles, Image as ImageIcon, CloudUpload, ExternalLink } from 'lucide-react';
 import type { GeneratedData } from '../types';
 import { generateAncientScrollPdf } from '../services/ancientScrollPdfService';
 import { audioFX } from '../services/audioService';
@@ -19,6 +21,68 @@ export const AncientScrollModal: React.FC<AncientScrollModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [progressMsg, setProgressMsg] = useState<string | null>(null);
   const [isDownloaded, setIsDownloaded] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [driveResultLink, setDriveResultLink] = useState<string | null>(null);
+
+  const handleDownloadImage = async () => {
+    if (!scrollRef.current || isGenerating) return;
+    setIsGenerating(true);
+    setProgressMsg('Rendering Scribe scroll image at 2X high-resolution...');
+    audioFX.playRuneChime();
+
+    try {
+      const canvas = await html2canvas(scrollRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#120c08',
+      });
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      const safeTitle = (data.mainTitle || 'Ancient_Scroll').replace(/[^a-zA-Z0-9_-]/g, '_');
+      link.download = `${safeTitle}_Scribe_Scroll.png`;
+      link.href = dataUrl;
+      link.click();
+      setIsDownloaded(true);
+      setProgressMsg('✓ Scribe Scroll Image Downloaded (.PNG)!');
+      audioFX.playDarkSealOffering('blood');
+      setTimeout(() => setIsDownloaded(false), 4500);
+    } catch (err) {
+      console.error('Failed to render Scribe Image:', err);
+      setProgressMsg(`Image Render Failed: ${err?.message || String(err)}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSaveImageToDrive = async () => {
+    if (!scrollRef.current || isGenerating) return;
+    setIsGenerating(true);
+    setProgressMsg('Rendering Scribe image and connecting to Google Drive...');
+    audioFX.playRuneChime();
+
+    try {
+      const canvas = await html2canvas(scrollRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#120c08',
+      });
+      const blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
+      const safeTitle = (data.mainTitle || 'Ancient_Scroll').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const result = await uploadFileToDrive(`${safeTitle}_Scribe_Scroll.png`, blob);
+      setProgressMsg('✓ Scribe Image Saved to Google Drive!');
+      if (result.webViewLink) {
+        setDriveResultLink(result.webViewLink);
+        window.open(result.webViewLink, '_blank');
+      }
+    } catch (err) {
+      console.error('Google Drive Scribe upload failed:', err);
+      setProgressMsg(`Drive upload failed: ${err?.message || String(err)}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -76,8 +140,31 @@ export const AncientScrollModal: React.FC<AncientScrollModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <button
+                type="button"
+                onClick={handleDownloadImage}
+                disabled={isGenerating}
+                className="px-3.5 py-2 rounded-xl bg-[#00d2ff]/20 hover:bg-[#00d2ff]/30 text-[#00d2ff] hover:text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 border border-[#00d2ff]/40 disabled:opacity-50 cursor-pointer"
+                title="Download this illuminated scripture as a high-resolution PNG image"
+              >
+                <ImageIcon className="w-3.5 h-3.5 text-[#00d2ff]" />
+                <span>SCRIBE IMAGE (.PNG)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveImageToDrive}
+                disabled={isGenerating}
+                className="px-3.5 py-2 rounded-xl bg-[#14171f] hover:bg-[#1f2533] text-[#f5ebd0] hover:text-[#00d2ff] font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-1.5 border border-[#242830] hover:border-[#00d2ff]/40 disabled:opacity-50 cursor-pointer"
+                title="Save this rendered Scribe Image directly to your Google Drive"
+              >
+                <CloudUpload className="w-3.5 h-3.5 text-[#00d2ff]" />
+                <span>SAVE IMAGE TO DRIVE</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleDownload}
                 disabled={isGenerating}
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#8d1a1a] via-[#b52626] to-[#d63b2f] hover:brightness-110 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-red-950/60 flex items-center gap-2 border border-[#ff5555]/50 disabled:opacity-50 cursor-pointer"
@@ -123,6 +210,7 @@ export const AncientScrollModal: React.FC<AncientScrollModalProps> = ({
           {/* Scroll Content Preview Stage */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-8 bg-[#120c08] scrollbar-thin scrollbar-thumb-[#5a3821]">
             <div
+              ref={scrollRef}
               className="max-w-2xl mx-auto rounded-2xl p-6 sm:p-12 relative shadow-2xl border-4 border-[#6b4528]"
               style={{
                 backgroundColor: '#f5eedb',

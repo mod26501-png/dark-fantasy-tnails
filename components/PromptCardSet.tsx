@@ -453,13 +453,12 @@ const Card: React.FC<{
 
           <button
             id={`scroll-pdf-btn-${(currentCard.title || 'relic').replace(/\s+/g, '-').toLowerCase()}`}
-            onClick={handleDownloadScribePdf}
-            disabled={isGeneratingScribePdf}
-            title="Download this relic scripture as an authentic, centered Ancient Scroll PDF"
-            className="flex-1 py-2.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border border-[#8d5b2d]/50 bg-[#1c140e] hover:bg-[#2e1d13] text-[#f5ebd0] hover:text-[#ffe6a8] shadow-sm cursor-pointer disabled:opacity-50"
+            onClick={() => setIsAncientScrollModalOpen(true)}
+            title="Unfurl and export this relic scripture as an illuminated Scribe Image (.PNG) or Gothic Scroll PDF"
+            className="flex-1 py-2.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border border-[#8d5b2d]/50 bg-[#1c140e] hover:bg-[#2e1d13] text-[#f5ebd0] hover:text-[#ffe6a8] shadow-sm cursor-pointer"
           >
             <span>📜</span>
-            <span>{isGeneratingScribePdf ? 'TRANSCRIBING...' : 'SCRIBE PDF'}</span>
+            <span>SCRIBE SCROLL</span>
           </button>
 
           <button

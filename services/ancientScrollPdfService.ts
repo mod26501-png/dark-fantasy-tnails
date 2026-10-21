@@ -139,10 +139,37 @@ export function createWaxSealCanvas(size = 200): string {
  * Loads an image from a URL and converts it into a high-res base64 JPEG data URL.
  */
 export async function preloadImageAsBase64(url: string, maxDim = 900): Promise<string | null> {
-  if (!url || url.includes('svg+xml')) return null;
+  if (!url || typeof url !== 'string' || url.includes('svg+xml') || url.includes('MANIFESTATION FAILED')) return null;
+
+  // 1. If already a valid raster base64 data URL, return directly
+  if (url.startsWith('data:image/jpeg') || url.startsWith('data:image/png') || url.startsWith('data:image/webp')) {
+    return url;
+  }
+
+  // 2. Fetch as blob first to safely avoid CORS canvas security taint
+  try {
+    const res = await fetch(url);
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.type.startsWith('image/') && !blob.type.includes('svg')) {
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+    }
+  } catch {
+    // Proceed to Image element
+  }
+
+  // 3. Fallback to HTMLImageElement
   return new Promise((resolve) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    if (url.startsWith('http')) {
+      img.crossOrigin = 'anonymous';
+    }
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas');
