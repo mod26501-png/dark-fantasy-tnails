@@ -699,3 +699,76 @@ export const hasUserBestowedSeal = (relicId: string, sealType: DarkSealType): bo
     return false;
   }
 };
+
+/**
+ * Update a public gallery manifestation or user session in Cloud Firestore
+ */
+export const updateGalleryDocumentInFirestore = async (relic: GeneratedData): Promise<void> => {
+  try {
+    const userId = await getEffectiveUserId();
+    const docId = relic.id;
+    if (!docId) throw new Error('Cannot update relic without an id');
+
+    const compressedBanner = relic.bannerImageUrl
+      ? await compressImageForFirestore(relic.bannerImageUrl, 640, 0.70)
+      : '';
+
+    const compressedCards = await Promise.all(
+      (relic.cards || []).map(async (c) => ({
+        ...c,
+        imageUrl: c.imageUrl ? await compressImageForFirestore(c.imageUrl, 640, 0.70) : '',
+      }))
+    );
+
+    const updatePayload: any = {
+      mainTitle: relic.mainTitle,
+      archetype: relic.archetype,
+      tone: relic.tone || 'Dark Fantasy',
+      bannerImageUrl: compressedBanner,
+      cards: compressedCards,
+      updatedAt: serverTimestamp(),
+    };
+
+    if (relic.ritualTheme) updatePayload.ritualTheme = relic.ritualTheme;
+    if (relic.ritualDate) updatePayload.ritualDate = relic.ritualDate;
+    if (relic.darkSeals) updatePayload.darkSeals = relic.darkSeals;
+
+    const pubDocRef = doc(db, 'public_gallery', docId);
+    await setDoc(pubDocRef, updatePayload, { merge: true });
+
+    try {
+      const userDocRef = doc(db, 'users', userId, 'sessions', docId);
+      await setDoc(userDocRef, updatePayload, { merge: true });
+    } catch {}
+  } catch (err) {
+    console.error('Failed to update gallery document in Firestore:', err);
+    throw err;
+  }
+};
+
+/**
+ * Delete a public gallery manifestation or user session from Cloud Firestore
+ */
+export const deleteGalleryDocumentFromFirestore = async (docId: string): Promise<void> => {
+  try {
+    const userId = await getEffectiveUserId();
+    if (!docId) return;
+
+    try {
+      const pubDocRef = doc(db, 'public_gallery', docId);
+      await deleteDoc(pubDocRef);
+    } catch (e) {
+      console.warn('Could not delete from public_gallery:', e);
+    }
+
+    try {
+      const userDocRef = doc(db, 'users', userId, 'sessions', docId);
+      await deleteDoc(userDocRef);
+    } catch (e) {
+      console.warn('Could not delete from user sessions:', e);
+    }
+  } catch (err) {
+    console.error('Failed to delete gallery document from Firestore:', err);
+    throw err;
+  }
+};

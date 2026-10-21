@@ -1,6 +1,6 @@
 import type { GeneratedData } from '../types';
 import { saveManifestationToFirestore, saveRelicToFirestore, removeRelicFromFirestore } from './firebaseService';
-import { saveRelicIDB, deleteRelicIDB, saveSessionIDB, getAllRelicsIDB } from './idbStorage';
+import { saveRelicIDB, deleteRelicIDB, saveSessionIDB, getAllRelicsIDB, deleteSessionIDB } from './idbStorage';
 
 /**
  * Safely saves the new generation session to IndexedDB, local storage history and Cloud Firestore.
@@ -137,4 +137,47 @@ export const setCodexList = (relics: any[]): void => {
     } catch (err) {
         console.error('Failed to save Codex list:', err);
     }
+};
+
+/**
+ * Update an existing session in IndexedDB and localStorage
+ */
+export const updateHistoryItem = (updated: GeneratedData): void => {
+  saveSessionIDB({ id: updated.id, data: updated }).catch((err) => {
+    console.warn('IndexedDB update warning:', err);
+  });
+
+  try {
+    const historyStr = localStorage.getItem('demon_codex_history');
+    if (historyStr) {
+      const history = JSON.parse(historyStr);
+      const index = history.findIndex(h => h.id === updated.id);
+      if (index !== -1) {
+        history[index] = updated;
+        localStorage.setItem('demon_codex_history', JSON.stringify(history));
+      }
+    }
+  } catch (err) {
+    console.warn('LocalStorage update warning:', err);
+  }
+};
+
+/**
+ * Remove a session from IndexedDB and localStorage
+ */
+export const removeHistoryItem = (id: string): void => {
+  deleteSessionIDB(id).catch((err) => {
+    console.warn('IndexedDB delete warning:', err);
+  });
+
+  try {
+    const historyStr = localStorage.getItem('demon_codex_history');
+    if (historyStr) {
+      const history = JSON.parse(historyStr);
+      const filtered = history.filter(h => h.id !== id);
+      localStorage.setItem('demon_codex_history', JSON.stringify(filtered));
+    }
+  } catch (err) {
+    console.warn('LocalStorage delete warning:', err);
+  }
 };

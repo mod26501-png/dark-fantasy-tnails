@@ -152,12 +152,14 @@ export async function deleteRelicIDB(title: string): Promise<void> {
  * Save session history in IndexedDB
  */
 export async function saveSessionIDB(session: any): Promise<void> {
+  const resolvedId = session.id || session.data?.id || `session_${Date.now()}`;
   try {
     const db = await getIDB();
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(SESSIONS_STORE, 'readwrite');
       const store = tx.objectStore(SESSIONS_STORE);
       const req = store.put({
+        id: resolvedId,
         ...session,
         savedAt: Date.now(),
       });
@@ -194,5 +196,24 @@ export async function getAllSessionsIDB(): Promise<any[]> {
     return stored ? JSON.parse(stored) : [];
   } catch {
     return [];
+  }
+}
+
+
+/**
+ * Delete a session from IndexedDB by ID
+ */
+export async function deleteSessionIDB(id: string): Promise<void> {
+  try {
+    const db = await getIDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(SESSIONS_STORE, 'readwrite');
+      const store = tx.objectStore(SESSIONS_STORE);
+      const req = store.delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.warn('IndexedDB deleteSession error:', err);
   }
 }

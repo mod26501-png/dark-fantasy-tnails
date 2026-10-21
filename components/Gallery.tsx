@@ -13,22 +13,27 @@ import {
     Eye,
     Globe,
     Compass,
-    Award
+    Award,
+    Edit3,
+    Trash2,
+    Wand2
 } from 'lucide-react';
-import { generateSoundscape } from '../services/geminiService';
+import { generateSoundscape, generateImageWithDiagnostics } from '../services/geminiService';
 import { 
     fetchPublicGalleryFromFirestore, 
     fetchUserHistoryFromFirestore,
     saveManifestationToFirestore,
     publishSessionToPublicGallery,
-    compressImageForFirestore
+    compressImageForFirestore,
+    updateGalleryDocumentInFirestore,
+    deleteGalleryDocumentFromFirestore
 } from '../services/firebaseService';
 import { getAllSessionsIDB } from '../services/idbStorage';
 import { HoloFoilCard } from './HoloFoilCard';
 import { DarkSealsBar } from './DarkSealsBar';
 import { DailyRitualBanner } from './DailyRitualBanner';
 import { getTodayRitual } from '../services/dailyRitualService';
-import { saveToHistory } from '../services/storageService';
+import { saveToHistory, updateHistoryItem, removeHistoryItem } from '../services/storageService';
 import { audioFX } from '../services/audioService';
 import type { GeneratedData, DarkSealType } from '../types';
 
@@ -61,6 +66,18 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
     const todayRitual = useMemo(() => getTodayRitual(), []);
     const [filterRitualOnly, setFilterRitualOnly] = useState<boolean>(false);
     const [sortMode, setSortMode] = useState<'latest' | 'blood' | 'void' | 'soul' | 'spark'>('latest');
+
+    // Edit Relic Modal States
+    const [editingRelic, setEditingRelic] = useState<GeneratedData | null>(null);
+    const [editTitle, setEditTitle] = useState<string>('');
+    const [editArchetype, setEditArchetype] = useState<string>('');
+    const [editLore, setEditLore] = useState<string>('');
+    const [editImage, setEditImage] = useState<string>('');
+    const [isForgingAiImage, setIsForgingAiImage] = useState<boolean>(false);
+    const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
+    const [editSuccessMessage, setEditSuccessMessage] = useState<string | null>(null);
+    const [editErrorMessage, setEditErrorMessage] = useState<string | null>(null);
+    const editFileInputRef = useRef<HTMLInputElement>(null);
 
     // Inscribe Modal States
     const [isInscribing, setIsInscribing] = useState(false);
@@ -257,6 +274,152 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             handleProcessImageFile(e.target.files[0]);
+        }
+    };
+
+    const startEditingRelic = (relic: GeneratedData) => {
+        setEditingRelic(relic);
+        setEditTitle(relic.cards?.[0]?.title || relic.mainTitle || '');
+        setEditArchetype(relic.archetype || 'Cursed Relic');
+        setEditLore(relic.cards?.[0]?.prompt || relic.cards?.[0]?.caption || '');
+        const currentImg = (relic.cards && relic.cards[0]?.imageUrl && !relic.cards[0].imageUrl.includes('svg+xml'))
+            ? relic.cards[0].imageUrl
+            : (relic.bannerImageUrl || '');
+        setEditImage(currentImg);
+        setEditSuccessMessage(null);
+        setEditErrorMessage(null);
+    };
+
+    const handleForgeAiImageForEdit = async () => {
+        if (!editTitle.trim()) {
+            setEditErrorMessage('Please provide a relic title first to guide AI image manifestation.');
+            return;
+        }
+        setIsForgingAiImage(true);
+        setEditErrorMessage(null);
+        try {
+            const promptToUse = editLore.trim()
+                ? `${editTitle.trim()}, ${editLore.trim().replace(/\n/g, ', ')}, atmospheric dark fantasy, gothic aesthetic, vivid colors, sharp focus`
+                : `${editTitle.trim()}, masterwork dark fantasy relic, occult artifact, cinematic volumetric lighting, 8k resolution, octane render`;
+            
+            const res = await generateImageWithDiagnostics(promptToUse, '16:9', '1K');
+            if (res.imageUrl && !res.diagnostic?.hasError) {
+                setEditImage(res.imageUrl);
+                audioFX.playRuneChime();
+            } else {
+                setEditErrorMessage('Image manifestation encountered an issue. Please try again.');
+            }
+        } catch (err: any) {
+            setEditErrorMessage(err?.message || 'Failed to manifest AI image.');
+        } finally {
+            setIsForgingAiImage(false);
+        }
+    };
+
+    const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            setEditErrorMessage('Please select a valid image file (PNG, JPG, WebP).');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            if (typeof reader.result === 'string') {
+                setEditImage(reader.result);
+                audioFX.playStoneRuneThud();
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleSaveRelicEdit = async () => {
+        if (!editingRelic) return;
+        if (!editTitle.trim()) {
+            setEditErrorMessage('Relic title cannot be empty.');
+            return;
+        }
+
+        setIsSavingEdit(true);
+        setEditErrorMessage(null);
+
+        try {
+            const updatedCards = (editingRelic.cards && editingRelic.cards.length > 0)
+                ? editingRelic.cards.map((c, i) => i === 0 ? {
+                    ...c,
+                    title: editTitle.trim(),
+                    prompt: editLore.trim() || c.prompt,
+                    caption: editLore.trim() || c.caption,
+                    imageUrl: editImage || c.imageUrl
+                } : c)
+                : [{
+                    glyph: '✦',
+                    title: editTitle.trim(),
+                    prompt: editLore.trim() || `Manifestation of ${editTitle.trim()}`,
+                    caption: editLore.trim() || 'An ancient relic inscribed into the Demon Codex Abyssal Archive.',
+                    tags: ['relic', 'abyssal', 'dark-fantasy'],
+                    imageUrl: editImage
+                }];
+
+            const updatedRelic: GeneratedData = {
+                ...editingRelic,
+                mainTitle: editTitle.trim(),
+                archetype: editArchetype.trim() || 'Cursed Relic',
+                bannerImageUrl: editImage || editingRelic.bannerImageUrl,
+                cards: updatedCards,
+            };
+
+            // 1. Update React state immediately
+            setCommunityGallery(prev => prev.map(r => r.id === updatedRelic.id ? updatedRelic : r));
+            setCloudHistory(prev => prev.map(r => r.id === updatedRelic.id ? updatedRelic : r));
+
+            // 2. Persist to IndexedDB & localStorage
+            updateHistoryItem(updatedRelic);
+
+            // 3. Persist to Firestore
+            try {
+                await updateGalleryDocumentInFirestore(updatedRelic);
+            } catch (fsErr) {
+                console.warn('Could not update Firestore document:', fsErr);
+            }
+
+            audioFX.playBladeClang();
+            setEditSuccessMessage('Relic Inscription & Imagery Updated Successfully ✓');
+
+            setTimeout(() => {
+                setEditingRelic(null);
+                setEditSuccessMessage(null);
+            }, 1000);
+        } catch (err: any) {
+            setEditErrorMessage(err?.message || 'Failed to save relic changes.');
+        } finally {
+            setIsSavingEdit(false);
+        }
+    };
+
+    const handleDeleteRelic = async (relic: GeneratedData) => {
+        const title = relic.cards?.[0]?.title || relic.mainTitle || 'this relic';
+        if (!window.confirm(`Are you sure you want to permanently banish "${title}" from the archive?`)) {
+            return;
+        }
+
+        const relicId = relic.id;
+        if (!relicId) return;
+
+        audioFX.playStoneRuneThud();
+
+        // 1. Update React state
+        setCommunityGallery(prev => prev.filter(r => r.id !== relicId));
+        setCloudHistory(prev => prev.filter(r => r.id !== relicId));
+
+        // 2. Remove from IndexedDB & localStorage
+        removeHistoryItem(relicId);
+
+        // 3. Remove from Cloud Firestore
+        try {
+            await deleteGalleryDocumentFromFirestore(relicId);
+        } catch (err) {
+            console.warn('Could not delete from Firestore:', err);
         }
     };
 
@@ -580,8 +743,8 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                                     className="aspect-video relative overflow-hidden cursor-pointer"
                                 >
                                     <img 
-                                        src={data.bannerImageUrl || (data.cards && data.cards[0]?.imageUrl) || undefined} 
-                                        alt={data.mainTitle} 
+                                        src={(data.cards && data.cards[0]?.imageUrl && !data.cards[0].imageUrl.includes('svg+xml')) ? data.cards[0].imageUrl : (data.bannerImageUrl || undefined)} 
+                                        alt={data.cards?.[0]?.title || data.mainTitle} 
                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
@@ -594,8 +757,12 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                                     )}
 
                                     <div className="absolute bottom-4 left-4 right-4">
-                                        <h3 className="text-white font-bold leading-tight line-clamp-1 group-hover:text-[#00d2ff] transition-colors">{data.mainTitle}</h3>
-                                        <p className="text-[9px] text-[#00d2ff] uppercase font-black tracking-widest">{data.archetype}</p>
+                                        <h3 className="text-white font-bold leading-tight line-clamp-1 group-hover:text-[#00d2ff] transition-colors">
+                                            {data.cards?.[0]?.title || data.mainTitle}
+                                        </h3>
+                                        <p className="text-[9px] text-[#00d2ff] uppercase font-black tracking-widest">
+                                            {data.archetype || data.cards?.[0]?.caption || 'Cursed Relic'}
+                                        </p>
                                     </div>
                                 </div>
 
@@ -604,13 +771,36 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                                         <span className="text-[8px] font-black text-[#70757e] uppercase tracking-widest">
                                             {data.cards?.length || 1} RELIC{data.cards?.length === 1 ? '' : 'S'} ARCHIVED
                                         </span>
-                                        <button 
-                                            onClick={() => onSelectRelic(data)}
-                                            className="text-[#00d2ff] hover:text-white flex items-center gap-1 font-bold uppercase tracking-wider"
-                                        >
-                                            <span>VIEW FORGE</span>
-                                            <ArrowUpRight className="w-3 h-3" />
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    startEditingRelic(data);
+                                                }}
+                                                className="px-2.5 py-1 rounded-lg border border-[#00d2ff]/40 bg-[#00d2ff]/10 hover:bg-[#00d2ff]/20 text-[#00d2ff] flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-all"
+                                                title="Edit relic title, lore and imagery"
+                                            >
+                                                <Edit3 className="w-3 h-3" />
+                                                <span>EDIT</span>
+                                            </button>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteRelic(data);
+                                                }}
+                                                className="p-1 rounded-lg border border-[#242830] hover:border-[#ff4d4d] bg-[#111318] text-[#70757e] hover:text-[#ff4d4d] transition-all"
+                                                title="Banish relic from archive"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button 
+                                                onClick={() => onSelectRelic(data)}
+                                                className="text-[#00d2ff] hover:text-white flex items-center gap-1 font-bold uppercase tracking-wider text-[10px]"
+                                            >
+                                                <span>VIEW FORGE</span>
+                                                <ArrowUpRight className="w-3 h-3" />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {/* Dark Seals Occult Reaction Bar */}
@@ -704,6 +894,198 @@ export const Gallery: React.FC<GalleryProps> = ({ onBack, onSelectRelic, onForge
                             </span>
                         </div>
                     )}
+                </div>
+            )}
+
+
+            {/* Edit Relic Modal */}
+            {editingRelic && (
+                <div 
+                    className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+                    onClick={() => {
+                        if (!isSavingEdit && !isForgingAiImage) setEditingRelic(null);
+                    }}
+                >
+                    <div 
+                        className="bg-[#111318] border-2 border-[#8d1a1a] shadow-[0_0_50px_rgba(141,26,26,0.6)] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between border-b border-[#242830] pb-4 mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-[#8d1a1a]/20 border border-[#8d1a1a] flex items-center justify-center">
+                                    <Edit3 className="w-5 h-5 text-[#ff4d4d]" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black uppercase tracking-wider text-white">
+                                        Edit Relic Inscription
+                                    </h3>
+                                    <p className="text-[10px] text-[#70757e] uppercase tracking-widest">
+                                        Update Title, Subtitle, and Manifest Matching Visuals
+                                    </p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    if (!isSavingEdit && !isForgingAiImage) setEditingRelic(null);
+                                }}
+                                disabled={isSavingEdit || isForgingAiImage}
+                                className="w-8 h-8 rounded-lg border border-[#242830] hover:border-[#ff4d4d] text-[#70757e] hover:text-[#ff4d4d] flex items-center justify-center transition-all disabled:opacity-40"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {/* Status Messages */}
+                        {editSuccessMessage && (
+                            <div className="mb-4 p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-400 text-xs font-bold flex items-center gap-2">
+                                <Check className="w-4 h-4" />
+                                <span>{editSuccessMessage}</span>
+                            </div>
+                        )}
+                        {editErrorMessage && (
+                            <div className="mb-4 p-3 rounded-xl bg-[#ff4d4d]/10 border border-[#ff4d4d]/40 text-[#ff4d4d] text-xs font-bold flex items-center gap-2">
+                                <X className="w-4 h-4" />
+                                <span>{editErrorMessage}</span>
+                            </div>
+                        )}
+
+                        <div className="space-y-5">
+                            {/* Relic Title */}
+                            <div>
+                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#70757e] mb-2">
+                                    Relic Title *
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    placeholder="e.g. Obsidian Sovereign Monolith"
+                                    className="w-full bg-[#0b0c10] border border-[#242830] focus:border-[#00d2ff] rounded-xl px-4 py-3 text-sm text-[#e8e6e3] placeholder-[#70757e]/50 outline-none transition-all font-bold"
+                                />
+                            </div>
+
+                            {/* Archetype / Subtitle */}
+                            <div>
+                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#70757e] mb-2">
+                                    Archetype / Subtitle
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={editArchetype}
+                                    onChange={(e) => setEditArchetype(e.target.value)}
+                                    placeholder="e.g. Abyssal Monument, Mythic Sovereign Relic"
+                                    className="w-full bg-[#0b0c10] border border-[#242830] focus:border-[#00d2ff] rounded-xl px-4 py-3 text-sm text-[#e8e6e3] placeholder-[#70757e]/50 outline-none transition-all"
+                                />
+                            </div>
+
+                            {/* Lore / Visual Prompt */}
+                            <div>
+                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#70757e] mb-2">
+                                    Lore Scripture & Visual Prompt
+                                </label>
+                                <textarea 
+                                    rows={3}
+                                    value={editLore}
+                                    onChange={(e) => setEditLore(e.target.value)}
+                                    placeholder="Describe the aesthetic, obsidian carving, glowing runes, or dark fantasy environment..."
+                                    className="w-full bg-[#0b0c10] border border-[#242830] focus:border-[#00d2ff] rounded-xl px-4 py-3 text-xs text-[#e8e6e3] placeholder-[#70757e]/50 outline-none transition-all resize-none font-mono"
+                                />
+                            </div>
+
+                            {/* Relic Imagery & Actions */}
+                            <div>
+                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#70757e] mb-2">
+                                    Relic Imagery
+                                </label>
+                                
+                                {editImage ? (
+                                    <div className="relative aspect-video rounded-2xl overflow-hidden border border-[#00d2ff]/40 shadow-xl mb-3">
+                                        <img src={editImage} alt="Relic preview" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-3">
+                                            <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider bg-black/60 px-2 py-0.5 rounded border border-emerald-500/30">
+                                                Active Image Ready
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="aspect-video rounded-2xl border-2 border-dashed border-[#242830] bg-[#0b0c10] flex flex-col items-center justify-center p-6 text-center mb-3">
+                                        <ImageIcon className="w-8 h-8 text-[#70757e] mb-2" />
+                                        <span className="text-xs text-[#70757e] uppercase font-bold tracking-wider">No image attached</span>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleForgeAiImageForEdit}
+                                        disabled={isForgingAiImage || isSavingEdit}
+                                        className="py-2.5 px-4 rounded-xl bg-[#00d2ff]/10 hover:bg-[#00d2ff]/20 border border-[#00d2ff]/50 text-[#00d2ff] hover:text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-md"
+                                    >
+                                        {isForgingAiImage ? (
+                                            <>
+                                                <div className="w-3.5 h-3.5 border-2 border-[#00d2ff] border-t-transparent rounded-full animate-spin"></div>
+                                                <span>Manifesting with AI...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Wand2 className="w-3.5 h-3.5" />
+                                                <span>⚡ Forge Matching Image</span>
+                                            </>
+                                        )}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => editFileInputRef.current?.click()}
+                                        disabled={isForgingAiImage || isSavingEdit}
+                                        className="py-2.5 px-4 rounded-xl bg-[#1b1f27] hover:bg-[#242830] border border-[#242830] text-[#e8e6e3] text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        <Upload className="w-3.5 h-3.5 text-[#ff4d4d]" />
+                                        <span>Upload Custom Image</span>
+                                    </button>
+
+                                    <input 
+                                        type="file"
+                                        ref={editFileInputRef}
+                                        onChange={handleEditFileChange}
+                                        accept="image/png,image/jpeg,image/webp"
+                                        className="hidden"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Modal Action Buttons */}
+                            <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#242830]">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingRelic(null)}
+                                    disabled={isSavingEdit || isForgingAiImage}
+                                    className="px-5 py-2.5 rounded-xl border border-[#242830] hover:border-[#ff4d4d]/40 text-[#70757e] hover:text-white text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-40"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSaveRelicEdit}
+                                    disabled={isSavingEdit || isForgingAiImage}
+                                    className="px-6 py-2.5 rounded-xl bg-[#8d1a1a] hover:bg-[#ff4d4d] text-white text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(141,26,26,0.5)] disabled:opacity-50 hover-blood"
+                                >
+                                    {isSavingEdit ? (
+                                        <>
+                                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            <span>Saving to Archive...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Check className="w-4 h-4" />
+                                            <span>Inscribe & Save Changes</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
