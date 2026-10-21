@@ -1256,7 +1256,7 @@ const App: React.FC = () => {
                             </div>
                             
                             <div className="codex-title-wrapper">
-                                <div className="codex-title text-5xl sm:text-7xl md:text-[10rem] font-normal leading-none drop-shadow-[0_10px_15px_rgba(0,0,0,0.95)] select-none" data-text="THE DEMON CODEX">
+                                <div className="codex-title text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-normal leading-tight drop-shadow-[0_10px_20px_rgba(0,0,0,0.95)] select-none" data-text="THE DEMON CODEX">
                                     THE DEMON CODEX
                                     <div className="rune">ᚱ</div>
                                     <div className="rune">ᛟ</div>

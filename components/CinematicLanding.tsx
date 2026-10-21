@@ -209,7 +209,7 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
         {/* Chrome Split-Horizon Title */}
         <div className="codex-title-wrapper mb-2">
           <h1 
-            className="codex-title text-6xl sm:text-8xl md:text-[9.5rem] font-normal leading-none drop-shadow-[0_15px_30px_rgba(0,0,0,0.95)] select-none" 
+            className="codex-title text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-normal leading-tight drop-shadow-[0_10px_20px_rgba(0,0,0,0.95)] select-none" 
             data-text="THE DEMON CODEX"
           >
             THE DEMON CODEX
