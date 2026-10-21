@@ -477,24 +477,27 @@ const App: React.FC = () => {
                 setLoadingMessage(`Manifesting Relic ${i + 1}/${imagePrompts.length}...`);
                 if (i > 0) {
                     // Pacing delay between sequential image requests to avoid hitting burst rate limits
-                    await new Promise(res => setTimeout(res, 1500));
+                    await new Promise(res => setTimeout(res, 2500));
                 }
 
                 let result: geminiService.GenerateImageResult | null = null;
-                // Auto-retry once with backoff before giving up so images render correctly without user clicking retry 2-3 times
-                for (let attempt = 0; attempt < 2; attempt++) {
+                // Auto-retry up to 3 times with exponential backoff on rate limits so images manifest automatically
+                for (let attempt = 0; attempt < 3; attempt++) {
                     try {
                         result = await geminiService.generateImageWithDiagnostics(p.prompt, p.aspectRatio, p.size, p.isStudioQuality);
                         if (!result.diagnostic?.hasError && result.imageUrl !== geminiService.FAILED_IMAGE_PLACEHOLDER) {
                             break;
                         }
-                        if (attempt === 0) {
-                            await new Promise(res => setTimeout(res, 1800));
+                        const isRateLimit = result.diagnostic?.statusCode === '429' || result.diagnostic?.statusCode === 429 || (result.diagnostic?.rawError && result.diagnostic.rawError.includes('429'));
+                        if (attempt < 2) {
+                            const delay = isRateLimit ? 3500 * (attempt + 1) : 2000;
+                            setLoadingMessage(`Cooling engine for Relic ${i + 1}/${imagePrompts.length} (retrying in ${Math.round(delay/1000)}s)...`);
+                            await new Promise(res => setTimeout(res, delay));
                         }
                     } catch (imgErr: any) {
                         console.warn(`Attempt ${attempt + 1} notice for ${p.type}:`, imgErr);
-                        if (attempt === 0) {
-                            await new Promise(res => setTimeout(res, 1800));
+                        if (attempt < 2) {
+                            await new Promise(res => setTimeout(res, 3000));
                         }
                     }
                 }

@@ -453,7 +453,7 @@ const Card: React.FC<{
 
           <button
             id={`scroll-pdf-btn-${(currentCard.title || 'relic').replace(/\s+/g, '-').toLowerCase()}`}
-            onClick={() => setIsAncientScrollModalOpen(true)}
+            onClick={() => onOpenScribe?.(currentCard)}
             title="Unfurl and export this relic scripture as an illuminated Scribe Image (.PNG) or Gothic Scroll PDF"
             className="flex-1 py-2.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border border-[#8d5b2d]/50 bg-[#1c140e] hover:bg-[#2e1d13] text-[#f5ebd0] hover:text-[#ffe6a8] shadow-sm cursor-pointer"
           >
@@ -545,6 +545,7 @@ export const PromptCardSet: React.FC<{ data: GeneratedData, onStartOver: () => v
 
     const [isBackingUpDrive, setIsBackingUpDrive] = useState(false);
     const [isAncientScrollModalOpen, setIsAncientScrollModalOpen] = useState(false);
+    const [scribeModalCard, setScribeModalCard] = useState<PromptCardType | null>(null);
     const [driveBackupStatus, setDriveBackupStatus] = useState<string | null>(null);
     const [driveFolderLink, setDriveFolderLink] = useState<string | null>(null);
 
@@ -786,7 +787,10 @@ export const PromptCardSet: React.FC<{ data: GeneratedData, onStartOver: () => v
                     </button>
                     <button
                         id="export-ancient-scroll-pdf-btn"
-                        onClick={() => setIsAncientScrollModalOpen(true)}
+                        onClick={() => {
+                            setScribeModalCard(null);
+                            setIsAncientScrollModalOpen(true);
+                        }}
                         className="bg-gradient-to-r from-[#2a170e] via-[#3d2315] to-[#2a170e] hover:from-[#4a2b1a] hover:to-[#4a2b1a] text-[#f5ebd0] hover:text-white px-4 py-3 rounded-xl text-xs font-black transition-all border border-[#f5c278]/50 shadow-lg flex items-center gap-2 hover-blood cursor-pointer"
                         title="Unfurl and download the series lore scripture as an Ancient Scroll PDF with gothic formatting and parchment textures"
                     >
@@ -875,6 +879,10 @@ export const PromptCardSet: React.FC<{ data: GeneratedData, onStartOver: () => v
                         archetype={data.archetype} 
                         onImageClick={setLightboxImage} 
                         onCardUpdate={(updated) => handleCardUpdated(i, updated)}
+                        onOpenScribe={(cardToScribe) => {
+                            setScribeModalCard(cardToScribe);
+                            setIsAncientScrollModalOpen(true);
+                        }}
                     />
                 ))}
             </motion.div>
@@ -882,6 +890,25 @@ export const PromptCardSet: React.FC<{ data: GeneratedData, onStartOver: () => v
             <AnimatePresence>
                 {lightboxImage && <Lightbox src={lightboxImage} onClose={() => setLightboxImage(null)} />}
             </AnimatePresence>
+
+            {/* Mounted Ancient Scroll Scribe Modal */}
+            <AncientScrollModal
+                data={scribeModalCard ? {
+                    ...data,
+                    mainTitle: scribeModalCard.title,
+                    bannerImageUrl: scribeModalCard.imageUrl,
+                    cards: [scribeModalCard]
+                } : {
+                    ...data,
+                    bannerImageUrl: bannerUrl,
+                    cards: cardsList
+                }}
+                isOpen={isAncientScrollModalOpen}
+                onClose={() => {
+                    setIsAncientScrollModalOpen(false);
+                    setScribeModalCard(null);
+                }}
+            />
         </div>
     );
 };

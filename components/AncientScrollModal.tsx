@@ -242,10 +242,10 @@ export const AncientScrollModal: React.FC<AncientScrollModalProps> = ({
               </div>
 
               {/* Banner Image */}
-              {data.bannerImageUrl && (
+              {(data.bannerImageUrl || (data.cards && data.cards[0]?.imageUrl)) && (
                 <div className="my-6 border-2 border-[#5a3821] p-1.5 bg-[#ebd9b8] rounded shadow-md">
                   <img
-                    src={data.bannerImageUrl}
+                    src={data.bannerImageUrl || (data.cards && data.cards[0]?.imageUrl)}
                     alt={data.mainTitle}
                     className="w-full h-44 sm:h-56 object-cover rounded filter sepia-[0.18]"
                   />
