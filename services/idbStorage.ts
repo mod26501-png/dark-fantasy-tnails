@@ -206,7 +206,7 @@ export async function getAllSessionsIDB(): Promise<any[]> {
 export async function deleteSessionIDB(id: string): Promise<void> {
   try {
     const db = await getIDB();
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(SESSIONS_STORE, 'readwrite');
       const store = tx.objectStore(SESSIONS_STORE);
       const req = store.delete(id);

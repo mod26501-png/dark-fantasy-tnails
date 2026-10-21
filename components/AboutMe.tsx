@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NewsletterForm } from './NewsletterForm';
 import { 
     Video, 
@@ -14,7 +13,13 @@ import {
     ArrowRight, 
     X, 
     MessageSquare,
-    Send
+    Send,
+    BookOpen,
+    Layers,
+    Cpu,
+    ShieldCheck,
+    Flame,
+    Scroll
 } from 'lucide-react';
 
 export type AppView = 'forge' | 'gallery' | 'crucible' | 'codex' | 'youtube' | 'studio' | 'about';
@@ -22,6 +27,7 @@ export type AppView = 'forge' | 'gallery' | 'crucible' | 'codex' | 'youtube' | '
 interface AboutMeProps {
     onBack: () => void;
     onNavigate?: (view: 'forge' | 'gallery' | 'crucible' | 'codex' | 'youtube' | 'studio') => void;
+    initialTab?: 'codex' | 'scribe';
 }
 
 interface CollabTrack {
@@ -85,21 +91,29 @@ const COLLAB_TRACKS: CollabTrack[] = [
 
 const BloodDrops: React.FC = () => {
     return (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
-            <span className="blood-drop" style={{ '--drop-left': '5%', '--drop-duration': '3.5s' } as any}></span>
-            <span className="blood-drop" style={{ '--drop-left': '15%', '--drop-duration': '6s' } as any}></span>
-            <span className="blood-drop" style={{ '--drop-left': '85%', '--drop-duration': '4s' } as any}></span>
-            <span className="blood-drop" style={{ '--drop-left': '95%', '--drop-duration': '7s' } as any}></span>
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+            <span className="blood-drop" style={{ left: '10%', animationDelay: '0s', animationDuration: '6s' }} />
+            <span className="blood-drop" style={{ left: '25%', animationDelay: '2s', animationDuration: '7s' }} />
+            <span className="blood-drop" style={{ left: '45%', animationDelay: '4s', animationDuration: '5.5s' }} />
+            <span className="blood-drop" style={{ left: '70%', animationDelay: '1s', animationDuration: '6.5s' }} />
+            <span className="blood-drop" style={{ left: '85%', animationDelay: '3s', animationDuration: '8s' }} />
         </div>
     );
 };
 
-export const AboutMe: React.FC<AboutMeProps> = ({ onBack, onNavigate }) => {
+export const AboutMe: React.FC<AboutMeProps> = ({ onBack, onNavigate, initialTab = 'codex' }) => {
+    const [activeTab, setActiveTab] = useState<'codex' | 'scribe'>(initialTab);
     const [isCollabModalOpen, setIsCollabModalOpen] = useState<boolean>(false);
     const [selectedTrackId, setSelectedTrackId] = useState<string>('video');
     const [senderName, setSenderName] = useState<string>('');
     const [projectNotes, setProjectNotes] = useState<string>('');
     const [copiedEmail, setCopiedEmail] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (initialTab) {
+            setActiveTab(initialTab);
+        }
+    }, [initialTab]);
 
     const CONTACT_EMAIL = "mod26501@gmail.com";
 
@@ -140,357 +154,446 @@ Looking forward to connecting!
 
     return (
         <div className="w-full animate-fade-in py-12 relative">
-            <div className="max-w-4xl mx-auto bg-[#111318]/80 backdrop-blur-xl border-2 border-[#8d1a1a]/40 rounded-[3rem] p-8 md:p-16 relative shadow-[0_0_100px_rgba(141,26,26,0.1)]">
+            <div className="max-w-4xl mx-auto bg-[#111318]/90 backdrop-blur-xl border-2 border-[#8d1a1a]/40 rounded-[3rem] p-6 sm:p-8 md:p-14 relative shadow-[0_0_100px_rgba(141,26,26,0.15)]">
                 <BloodDrops />
                 
-                <div className="flex justify-between items-center mb-6 w-full">
+                <div className="flex justify-between items-center mb-6 w-full relative z-10">
                     <button
                         onClick={onBack}
                         className="px-3.5 py-1.5 rounded-lg bg-[#111318] hover:bg-[#1c202a] border border-[#242830] hover:border-[#ff4d4d] text-[#8d929b] hover:text-white text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5"
                     >
                         <span>← Back to Forge</span>
                     </button>
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#70757e]">Codex Specification</span>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#70757e]">Codex Specification • v3.8</span>
                 </div>
-                <header className="mb-12 text-center flex flex-col items-center">
-                    <div className="codex-title-wrapper !m-0 !mt-6 sm:!mt-8 !mb-3 !w-auto">
-                        <h2 className="codex-title text-4xl sm:text-5xl font-normal leading-none drop-shadow-[0_10px_15px_rgba(0,0,0,0.95)] select-none uppercase tracking-wide relative inline-block mt-3" data-text="THE ARCH-SCRIBE">
-                            THE ARCH-SCRIBE
-                            <span className="rune">✦</span>
-                            <span className="rune">✙</span>
-                        </h2>
-                    </div>
-                    <div className="inline-block py-1 px-4 rounded-full bg-[#8d1a1a]/20 border border-[#8d1a1a]/40 text-[#ff4d4d] text-xs font-black tracking-widest uppercase italic mt-4">
-                        Rick Modster Manifestation
-                    </div>
-                </header>
 
-                <div className="space-y-8 relative z-10">
-                    <section className="space-y-4">
-                        <p className="text-xl md:text-2xl font-bold leading-relaxed text-[#ff4d4d] drop-shadow-[0_0_10px_rgba(255,77,77,0.3)] italic">
-                            I’m Richard (Rick), an AI & digital creator with almost three years of hands-on experience working with different AI models and tools. I combine AI annotation, music creation, video editing, and graphic design to build content and products that are both creative and useful.
-                        </p>
-                    </section>
-
-                    <section className="bg-black/40 border border-[#242830] rounded-2xl p-6 md:p-10 hover:border-[#8d1a1a]/60 transition-colors">
-                        <h3 className="text-[#8d1a1a] text-xs font-black uppercase tracking-[0.4em] mb-4">The Night Watch</h3>
-                        <p className="text-[#e8e6e3] text-lg leading-relaxed">
-                            By night, I work as a Senior AI Annotator for Outlier (Scale AI), helping train and evaluate advanced AI systems. I review and label data, score AI responses, and follow detailed guidelines to improve quality, safety, and accuracy. This work has sharpened my research skills, critical thinking, and prompt engineering.
-                        </p>
-                    </section>
-
-                    {/* Official YouTube Channel Spotlight */}
-                    <section className="bg-gradient-to-r from-[#1b1212] via-[#111318] to-[#1a0f0f] border-2 border-[#ff0000]/40 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_30px_rgba(255,0,0,0.15)]">
-                        <div className="flex items-center gap-5">
-                            <img 
-                                src="/demon-ai-1781131108810.jpg" 
-                                alt="The Demon Codex YouTube" 
-                                className="w-16 h-16 rounded-2xl border border-[#ff0000] object-cover shadow-[0_0_20px_#ff0000]"
-                            />
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <h4 className="text-lg font-black text-white uppercase">The Demon Codex on YouTube</h4>
-                                    <span className="bg-[#ff0000] text-white text-[9px] font-black px-1.5 py-0.5 rounded uppercase">@thedemoncodex</span>
-                                </div>
-                                <p className="text-xs text-[#9aa0a6] mt-1">Dark fantasy lore broadcasts, Veo 3.1 visual experiments, and occult soundscapes.</p>
-                            </div>
-                        </div>
-                        <a 
-                            href="https://www.youtube.com/@thedemoncodex"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="px-6 py-3 bg-[#ff0000] hover:bg-[#cc0000] text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(255,0,0,0.4)] whitespace-nowrap hover:scale-105"
+                {/* Primary Dual-Tab Switcher: The Demon Codex vs The Arch-Scribe */}
+                <div className="flex items-center justify-center mb-10 w-full relative z-10">
+                    <div className="flex p-1.5 bg-[#0b0c10] border border-[#242830] rounded-2xl shadow-2xl max-w-md w-full">
+                        <button
+                            id="tab-btn-codex"
+                            type="button"
+                            onClick={() => setActiveTab('codex')}
+                            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                                activeTab === 'codex'
+                                    ? 'bg-gradient-to-r from-[#8d1a1a] via-[#ff0000] to-[#8d1a1a] text-white shadow-[0_0_20px_rgba(255,0,0,0.6)] border border-white/20'
+                                    : 'text-[#70757e] hover:text-white hover:bg-[#151821]'
+                            }`}
                         >
-                            Subscribe on YouTube ↗
-                        </a>
-                    </section>
+                            <span>📜</span>
+                            <span>The Demon Codex</span>
+                        </button>
+                        <button
+                            id="tab-btn-scribe"
+                            type="button"
+                            onClick={() => setActiveTab('scribe')}
+                            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                                activeTab === 'scribe'
+                                    ? 'bg-gradient-to-r from-[#8d1a1a] via-[#ff0000] to-[#8d1a1a] text-white shadow-[0_0_20px_rgba(255,0,0,0.6)] border border-white/20'
+                                    : 'text-[#70757e] hover:text-white hover:bg-[#151821]'
+                            }`}
+                        >
+                            <span>✍</span>
+                            <span>The Arch-Scribe</span>
+                        </button>
+                    </div>
+                </div>
 
-                    <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-6">
-                            <h3 className="text-[#00d2ff] text-xs font-black uppercase tracking-[0.4em]">The Studio Rituals</h3>
-                            <ul className="space-y-4 text-sm text-[#9aa0a6] uppercase font-bold tracking-wider">
-                                <li className="flex items-center gap-3">
-                                    <span className="w-2 h-2 rounded-full bg-[#8d1a1a]"></span>
-                                    Original Music with Suno
-                                </li>
-                                <li className="flex items-center gap-3">
-                                    <span className="w-2 h-2 rounded-full bg-[#8d1a1a]"></span>
-                                    Visual Sync AI Generation
-                                </li>
-                                <li className="flex items-center gap-3">
-                                    <span className="w-2 h-2 rounded-full bg-[#8d1a1a]"></span>
-                                    CapCut Motion Alchemy
-                                </li>
-                                <li className="flex items-center gap-3">
-                                    <span className="w-2 h-2 rounded-full bg-[#8d1a1a]"></span>
-                                    Bone-Deep Graphic Design
-                                </li>
-                                <li className="flex items-center gap-3">
-                                    <span className="w-2 h-2 rounded-full bg-[#8d1a1a]"></span>
-                                    React & TS Web Forging
-                                </li>
-                            </ul>
-                        </div>
-                        <div className="bg-[#8d1a1a]/5 border border-[#8d1a1a]/20 rounded-2xl p-6">
-                            <h3 className="text-[#ff4d4d] text-xs font-black uppercase tracking-[0.4em] mb-4">Eternal Learning</h3>
-                            <p className="text-sm text-[#e8e6e3] italic leading-relaxed">
-                                I’m always learning—whether it’s new AI platforms, creative workflows, or development tools—and I enjoy blending technology, storytelling, and design into projects that stand out.
+                {/* ========================================================
+                    TAB 1: ABOUT THE DEMON CODEX (SYSTEM SPECS & CANON)
+                    ======================================================== */}
+                {activeTab === 'codex' && (
+                    <div className="space-y-10 relative z-10 animate-fade-in">
+                        <header className="text-center flex flex-col items-center">
+                            <div className="codex-title-wrapper !m-0 !mt-2 !mb-3 !w-auto">
+                                <h2 className="codex-title text-3xl sm:text-4xl md:text-5xl font-normal leading-none drop-shadow-[0_10px_15px_rgba(0,0,0,0.95)] select-none uppercase tracking-wide relative inline-block mt-2" data-text="THE DEMON CODEX">
+                                    THE DEMON CODEX
+                                    <span className="rune">ᚱ</span>
+                                    <span className="rune">ᛟ</span>
+                                </h2>
+                            </div>
+                            <div className="inline-flex items-center gap-2 py-1 px-4 rounded-full bg-[#8d1a1a]/20 border border-[#8d1a1a]/40 text-[#ff4d4d] text-xs font-black tracking-widest uppercase italic mt-2">
+                                <Sparkles className="w-3.5 h-3.5" />
+                                <span>Platform Overview & System Specifications</span>
+                            </div>
+                        </header>
+
+                        {/* Section 1: Overview */}
+                        <section className="bg-black/40 border border-[#242830] rounded-2xl p-6 md:p-8 hover:border-[#8d1a1a]/60 transition-colors">
+                            <div className="flex items-center gap-2 text-[#ff4d4d] text-xs font-black uppercase tracking-[0.3em] mb-3">
+                                <Flame className="w-4 h-4 text-[#ff4d4d]" />
+                                <span>Dark Fantasy Creative Sanctuary</span>
+                            </div>
+                            <p className="text-sm md:text-base text-[#d1d5db] leading-relaxed font-sans mb-3">
+                                <strong>The Demon Codex</strong> is an authentic creative platform engineered specifically for dark fantasy authors, tabletop game masters, concept artists, and grimdark worldbuilders. Powered by advanced Google Gemini and Veo models, the platform empowers creators to summon hyper-detailed 4K visual relics, cinematic artifacts, ancient scrolls, and deciphered runic lore through an immersive occult interface.
                             </p>
-                        </div>
-                    </section>
+                            <p className="text-xs md:text-sm text-[#9aa0a6] leading-relaxed">
+                                Unlike generic diffusion tools that produce flat, plastic representations, The Demon Codex employs multi-vector prompt architecture—layering tactile metallurgy, atmospheric suspensions, and extreme chiaroscuro lighting to produce gallery-grade masterworks.
+                            </p>
+                        </section>
 
-                    <section className="pt-8 border-t border-[#242830]">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-                            <div className="text-center sm:text-left">
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#ff4d4d] block">
-                                    Direct Client & Creator Commissions
-                                </span>
-                                <h3 className="text-white text-xl sm:text-2xl font-black uppercase tracking-wider">
-                                    Collaborate on the Forbidden
-                                </h3>
+                        {/* Section 2: Canonical Relic Taxonomy */}
+                        <section className="bg-gradient-to-r from-[#181116] via-[#111318] to-[#121620] border border-[#242830] rounded-2xl p-6 md:p-8">
+                            <div className="flex items-center gap-2 text-[#00d2ff] text-xs font-black uppercase tracking-[0.3em] mb-4">
+                                <Layers className="w-4 h-4 text-[#00d2ff]" />
+                                <span>The 5 Canonical Relic Classifications</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                                <div className="p-4 rounded-xl bg-[#090b10] border border-[#242830]/80">
+                                    <span className="text-[#ff4d4d] font-bold uppercase tracking-wider block mb-1">1. Necrotic Grimoires</span>
+                                    <p className="text-[#9aa0a6] leading-relaxed">Ancient tomes, scorched vellum, and forbidden incantations bound in shadow and ash.</p>
+                                </div>
+                                <div className="p-4 rounded-xl bg-[#090b10] border border-[#242830]/80">
+                                    <span className="text-[#c26b3a] font-bold uppercase tracking-wider block mb-1">2. Abyssal Weaponry</span>
+                                    <p className="text-[#9aa0a6] leading-relaxed">3D blood-chrome blades, obsidian polearms, and damascene steel forged in subterranean fire.</p>
+                                </div>
+                                <div className="p-4 rounded-xl bg-[#090b10] border border-[#242830]/80">
+                                    <span className="text-[#ffd27f] font-bold uppercase tracking-wider block mb-1">3. Soulbound Catalysts</span>
+                                    <p className="text-[#9aa0a6] leading-relaxed">Occult amulets, fractured gemstones, and sacrificial chalices channeling spectral runes.</p>
+                                </div>
+                                <div className="p-4 rounded-xl bg-[#090b10] border border-[#242830]/80">
+                                    <span className="text-[#a855f7] font-bold uppercase tracking-wider block mb-1">4. Void Reliquaries</span>
+                                    <p className="text-[#9aa0a6] leading-relaxed">Floating monolithic shrines, necrotic citadels, and gargantuan architectural sanctums.</p>
+                                </div>
+                                <div className="p-4 rounded-xl bg-[#090b10] border border-[#ffd27f]/30 sm:col-span-2">
+                                    <span className="text-[#ffd27f] font-bold uppercase tracking-wider block mb-1">5. Seraphic Counter-Relics</span>
+                                    <p className="text-[#9aa0a6] leading-relaxed">Transmuted holy shields, opalescent electrum spears, and radiant celestial halos channelled via the Angelic Agent.</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Section 3: System Engine Architecture */}
+                        <section className="bg-black/40 border border-[#242830] rounded-2xl p-6 md:p-8">
+                            <div className="flex items-center gap-2 text-[#ffd27f] text-xs font-black uppercase tracking-[0.3em] mb-4">
+                                <Cpu className="w-4 h-4 text-[#ffd27f]" />
+                                <span>Engine Matrix & Technological Stack</span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                                <div className="p-4 rounded-xl bg-[#111318] border border-[#242830]">
+                                    <span className="text-white font-black uppercase tracking-wider block mb-1">⚡ Gemini 3.8 Flash</span>
+                                    <p className="text-[#70757e] leading-relaxed">High-velocity dark fantasy prompt synthesis, banish seal validation, and structured occult lore decoding.</p>
+                                </div>
+                                <div className="p-4 rounded-xl bg-[#111318] border border-[#242830]">
+                                    <span className="text-white font-black uppercase tracking-wider block mb-1">🎬 Google Veo 3.1</span>
+                                    <p className="text-[#70757e] leading-relaxed">Kinematic video generation engine with custom volumetric lighting, camera orbiting, and embers physics.</p>
+                                </div>
+                                <div className="p-4 rounded-xl bg-[#111318] border border-[#242830]">
+                                    <span className="text-white font-black uppercase tracking-wider block mb-1">📿 Abyssal Audio FX</span>
+                                    <p className="text-[#70757e] leading-relaxed">Procedural 432Hz master drone oscillator and multi-channel occult choir soundboard via Web Audio API.</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Section 4: Commercial Rights & Licensing */}
+                        <section className="bg-gradient-to-r from-[#1b1212] via-[#111318] to-[#1a0f0f] border-2 border-[#ff0000]/40 rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-[0_0_30px_rgba(255,0,0,0.15)]">
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-[#10b981] text-xs font-black uppercase tracking-widest">
+                                    <ShieldCheck className="w-4 h-4" />
+                                    <span>Unrestricted Commercial Rights</span>
+                                </div>
+                                <h3 className="text-white text-lg font-black uppercase tracking-tight">Worldwide Commercial Rights</h3>
+                                <p className="text-xs text-[#d1d5db] max-w-xl leading-relaxed">
+                                    Creators retain full worldwide commercial ownership of all visual relics, prompts, lore scripts, and YouTube packages generated through The Demon Codex. Use them freely in novels, commercial video games, tabletop campaigns, and album covers without royalties.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => handleNavigatePage('forge')}
+                                className="px-6 py-3 rounded-xl bg-[#ff0000] hover:bg-[#ff2222] text-white text-xs font-black uppercase tracking-wider whitespace-nowrap shadow-[0_0_20px_rgba(255,0,0,0.6)] transition-all hover:scale-105"
+                            >
+                                Enter Forge
+                            </button>
+                        </section>
+                    </div>
+                )}
+
+                {/* ========================================================
+                    TAB 2: ABOUT THE ARCH-SCRIBE (CREATOR PROFILE & COLLAB)
+                    ======================================================== */}
+                {activeTab === 'scribe' && (
+                    <div className="space-y-8 relative z-10 animate-fade-in">
+                        <header className="mb-8 text-center flex flex-col items-center">
+                            <div className="codex-title-wrapper !m-0 !mt-2 !mb-3 !w-auto">
+                                <h2 className="codex-title text-4xl sm:text-5xl font-normal leading-none drop-shadow-[0_10px_15px_rgba(0,0,0,0.95)] select-none uppercase tracking-wide relative inline-block mt-3" data-text="THE ARCH-SCRIBE">
+                                    THE ARCH-SCRIBE
+                                    <span className="rune">✦</span>
+                                    <span className="rune">✙</span>
+                                </h2>
+                            </div>
+                            <div className="inline-block py-1 px-4 rounded-full bg-[#8d1a1a]/20 border border-[#8d1a1a]/40 text-[#ff4d4d] text-xs font-black tracking-widest uppercase italic mt-4">
+                                Rick Modster Manifestation
+                            </div>
+                        </header>
+
+                        <section className="space-y-4">
+                            <p className="text-xl md:text-2xl font-bold leading-relaxed text-[#ff4d4d] drop-shadow-[0_0_10px_rgba(255,77,77,0.3)] italic">
+                                "I am an Outlier AI human-in-the-loop specialist, creative technologist, and digital blacksmith forging the bleeding edge of cinematic AI worldbuilding."
+                            </p>
+                            <p className="text-sm md:text-base text-[#cfd3d8] leading-relaxed font-sans">
+                                At the intersection of high-tier large language model fine-tuning and grimdark aesthetics lies <strong>The Demon Codex</strong>. My craft revolves around decomposing complex AI mechanisms—from multi-modal image tokenizers to reactive Web Audio synthesizers—into ritualistic, high-yield creative instruments for digital artists, grimdark authors, and game designers.
+                            </p>
+                        </section>
+
+                        <section className="bg-black/40 border border-[#242830] rounded-2xl p-6 md:p-10 hover:border-[#8d1a1a]/60 transition-colors">
+                            <h3 className="text-[#8d1a1a] text-xs font-black uppercase tracking-[0.4em] mb-4">The Night Watch</h3>
+                            <p className="text-sm text-[#70757e] leading-relaxed mb-4">
+                                As an operational expert evaluating frontier reasoning engines at Outlier AI, my daily focus includes rigorous alignment, synthetic data creation, safety auditing, and prompt engineering at industrial scale. Every prompt template and heuristic encoded in The Demon Codex reflects hundreds of hours testing model boundaries, eliminating token drift, and enforcing cinematic composition standards.
+                            </p>
+                            <p className="text-sm text-[#70757e] leading-relaxed">
+                                When not training model horizons, I run <strong>The Demon Codex Studio</strong>—producing YouTube dark fantasy lore documentaries, generating modular stem soundscapes, and writing bespoke worldbuilding scripts.
+                            </p>
+                        </section>
+
+                        {/* Direct Contact Banner */}
+                        <section className="bg-gradient-to-r from-[#1b1212] via-[#111318] to-[#1a0f0f] border-2 border-[#ff0000]/40 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_30px_rgba(255,0,0,0.15)]">
+                            <div className="space-y-1.5 text-center md:text-left">
+                                <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-[#ff4d4d] font-bold">Direct Channel</span>
+                                <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight">Summon The Arch-Scribe</h3>
+                                <p className="text-xs text-[#70757e] max-w-md">Reach out directly for freelance contracts, custom AI pipelines, video editing commissions, or corporate consulting.</p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                                <a 
+                                    href={`mailto:${CONTACT_EMAIL}?subject=The%20Demon%20Codex%20Inquiry`}
+                                    className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#ff0000] hover:bg-[#8d1a1a] text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,0,0,0.5)] hover:scale-105 active:scale-95"
+                                >
+                                    <Mail className="w-4 h-4" />
+                                    <span>Send Transmission</span>
+                                </a>
+                                <button
+                                    onClick={handleCopyEmail}
+                                    className="w-full sm:w-auto px-4 py-3 rounded-xl bg-[#111318] hover:bg-[#242830] border border-[#242830] text-xs font-mono text-[#e8e6e3] transition-all flex items-center justify-center gap-2"
+                                    title="Copy mod26501@gmail.com"
+                                >
+                                    {copiedEmail ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-[#70757e]" />}
+                                    <span>{copiedEmail ? 'Copied!' : 'Copy Email'}</span>
+                                </button>
+                            </div>
+                        </section>
+
+                        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-black/40 border border-[#242830] rounded-2xl p-6 md:p-8">
+                                <h3 className="text-[#00d2ff] text-xs font-black uppercase tracking-[0.4em] mb-4">The Studio Rituals</h3>
+                                <ul className="space-y-3 text-xs text-[#70757e]">
+                                    <li className="flex items-start gap-2.5">
+                                        <span className="text-[#00d2ff] mt-0.5">✦</span>
+                                        <span><strong>YouTube Production:</strong> Authoring @thedemoncodex lore stories, pacing motion loops, and soundscape syncing.</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5">
+                                        <span className="text-[#00d2ff] mt-0.5">✦</span>
+                                        <span><strong>Prompt Engineering:</strong> Structuring multi-tiered negative prompt matrices and cinematic lighting constraints.</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5">
+                                        <span className="text-[#00d2ff] mt-0.5">✦</span>
+                                        <span><strong>Audio Engineering:</strong> Composing 432Hz ambient soundscapes and industrial horror stems for game soundtracks.</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5">
+                                        <span className="text-[#00d2ff] mt-0.5">✦</span>
+                                        <span><strong>Full-Stack Architecture:</strong> Building responsive React, Vite, Node, and Cloud Run production applications.</span>
+                                    </li>
+                                </ul>
                             </div>
 
-                            <button
-                                id="initiate-collab-btn"
-                                onClick={() => handleOpenInquiry()}
-                                className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#8d1a1a] via-[#c26b3a] to-[#8d1a1a] hover:from-[#ff0000] hover:to-[#ff4d4d] text-white text-xs font-black uppercase tracking-[0.15em] shadow-[0_0_25px_rgba(255,0,0,0.4)] hover:scale-105 transition-all flex items-center gap-2 whitespace-nowrap"
-                            >
-                                <Mail className="w-4 h-4" />
-                                <span>✦ Initiate Collaboration ✦</span>
-                            </button>
-                        </div>
+                            <div className="bg-black/40 border border-[#242830] rounded-2xl p-6 md:p-8">
+                                <h3 className="text-[#ff4d4d] text-xs font-black uppercase tracking-[0.4em] mb-4">Eternal Learning</h3>
+                                <p className="text-xs text-[#70757e] leading-relaxed mb-4">
+                                    Software engineering and AI iteration are living rituals. The Demon Codex codebase undergoes continuous optimization—incorporating zero-overhead audio filters, strict Cloud Firestore rules, and real-time community seal reactions.
+                                </p>
+                                <p className="text-xs text-[#70757e] leading-relaxed">
+                                    Every relic forged through this tool contributes to the permanent lore web, demonstrating what is possible when dark romantic fantasy meets state-of-the-art computational creativity.
+                                </p>
+                            </div>
+                        </section>
 
-                        <p className="text-sm text-[#9aa0a6] mb-6 leading-relaxed">
-                            Looking to collaborate on AI architectures, dark fantasy video edits, bespoke lore universes, or high-fidelity graphic design? Each pillar connects directly to active systems across the codex:
-                        </p>
+                        {/* Interactive Collaboration Matrix */}
+                        <section className="pt-8 border-t border-[#242830]">
+                            <div className="text-center max-w-xl mx-auto mb-8">
+                                <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#ff4d4d] block mb-2">Pact of Creation</span>
+                                <h3 className="text-white text-xl sm:text-2xl font-black uppercase tracking-wider">
+                                    Commission The Scribe & Collaborate
+                                </h3>
+                                <p className="text-xs text-[#70757e] mt-2 leading-relaxed">
+                                    Select an arcane domain below to learn more, visit dedicated platform pages, or directly submit a collaboration brief to Rick.
+                                </p>
+                            </div>
 
-                        {/* 4 Interactive Discipline Cards */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {COLLAB_TRACKS.map((track) => (
-                                <div
-                                    key={track.id}
-                                    className="p-5 rounded-2xl bg-[#0e1015] border border-[#242830] hover:border-[#8d1a1a]/70 transition-all flex flex-col justify-between group relative overflow-hidden shadow-lg"
-                                >
-                                    <div 
-                                        className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-2xl opacity-20 pointer-events-none transition-opacity group-hover:opacity-40"
-                                        style={{ backgroundColor: track.accentColor }}
-                                    />
-
-                                    <div>
-                                        <div className="flex items-center justify-between gap-2 mb-3">
-                                            <div className="flex items-center gap-2">
-                                                <span 
-                                                    className="p-2 rounded-lg text-white"
-                                                    style={{ backgroundColor: `${track.accentColor}25`, border: `1px solid ${track.accentColor}60` }}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {COLLAB_TRACKS.map((track) => (
+                                    <div
+                                        key={track.id}
+                                        className="p-5 rounded-2xl bg-[#090b10] border border-[#242830] hover:border-[#ff4d4d]/60 transition-all duration-300 flex flex-col justify-between group shadow-lg"
+                                    >
+                                        <div>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div 
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
+                                                    style={{ backgroundColor: `${track.accentColor}20`, color: track.accentColor }}
                                                 >
                                                     {track.icon}
+                                                </div>
+                                                <span 
+                                                    className="px-2.5 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wider font-bold"
+                                                    style={{ 
+                                                        backgroundColor: `${track.accentColor}15`,
+                                                        color: track.accentColor,
+                                                        border: `1px solid ${track.accentColor}40`
+                                                    }}
+                                                >
+                                                    {track.badge}
                                                 </span>
-                                                <h4 className="text-base font-black uppercase text-white tracking-wide">
-                                                    {track.title}
-                                                </h4>
                                             </div>
-                                            <span 
-                                                className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full border text-white"
-                                                style={{ borderColor: `${track.accentColor}60`, backgroundColor: `${track.accentColor}15` }}
-                                            >
-                                                {track.badge}
-                                            </span>
+
+                                            <h4 className="text-sm font-black text-white uppercase tracking-tight group-hover:text-[#ff4d4d] transition-colors mb-1.5">
+                                                {track.title}
+                                            </h4>
+                                            <p className="text-xs text-[#70757e] leading-relaxed mb-4">
+                                                {track.description}
+                                            </p>
+
+                                            <div className="space-y-1.5 mb-5 pt-3 border-t border-[#1a1e27]">
+                                                {track.skills.map((skill, sIdx) => (
+                                                    <div key={sIdx} className="flex items-center gap-1.5 text-[10px] text-[#9aa0a6]">
+                                                        <span className="w-1 h-1 rounded-full" style={{ backgroundColor: track.accentColor }} />
+                                                        <span>{skill}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
 
-                                        <p className="text-xs text-[#9aa0a6] leading-relaxed mb-4">
-                                            {track.description}
-                                        </p>
-
-                                        <ul className="space-y-1 mb-5">
-                                            {track.skills.map((skill, sIdx) => (
-                                                <li key={sIdx} className="text-[11px] text-[#70757e] flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: track.accentColor }} />
-                                                    <span>{skill}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
+                                        <div className="flex items-center gap-2 pt-2 border-t border-[#1a1e27]">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleNavigatePage(track.targetView)}
+                                                className="flex-1 py-2 px-3 rounded-lg bg-[#111318] hover:bg-[#1a1f2c] border border-[#242830] text-white text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1"
+                                                title={`Go to ${track.pageName}`}
+                                            >
+                                                <span>Visit {track.pageName}</span>
+                                                <ArrowRight className="w-3 h-3 text-[#70757e]" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenInquiry(track.id)}
+                                                className="py-2 px-3 rounded-lg text-white text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 border"
+                                                style={{ 
+                                                    backgroundColor: `${track.accentColor}25`,
+                                                    borderColor: `${track.accentColor}60`
+                                                }}
+                                                title={`Inquire about ${track.title}`}
+                                            >
+                                                <Mail className="w-3.5 h-3.5" />
+                                                <span>Inquire</span>
+                                            </button>
+                                        </div>
                                     </div>
-
-                                    {/* Action Buttons for each track */}
-                                    <div className="flex items-center gap-2 pt-3 border-t border-[#242830]/80">
-                                        <button
-                                            id={`nav-track-${track.id}-btn`}
-                                            onClick={() => handleNavigatePage(track.targetView)}
-                                            className="flex-1 py-2.5 px-3 rounded-xl bg-[#161820] hover:bg-[#20242f] text-white text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border border-[#2e3340] hover:border-white/30"
-                                            title={`Go to ${track.pageName}`}
-                                        >
-                                            <span>Open {track.pageName}</span>
-                                            <ArrowRight className="w-3.5 h-3.5 text-[#00d2ff]" />
-                                        </button>
-
-                                        <button
-                                            id={`inquire-track-${track.id}-btn`}
-                                            onClick={() => handleOpenInquiry(track.id)}
-                                            className="py-2.5 px-3 rounded-xl text-white text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border shadow"
-                                            style={{ 
-                                                backgroundColor: `${track.accentColor}20`,
-                                                borderColor: `${track.accentColor}60`
-                                            }}
-                                            title={`Inquire about ${track.title}`}
-                                        >
-                                            <Mail className="w-3.5 h-3.5" />
-                                            <span>Inquire</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Direct Email Banner */}
-                        <div className="mt-6 p-4 rounded-2xl bg-[#111318] border border-[#242830] flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-3 rounded-xl bg-[#8d1a1a]/20 border border-[#8d1a1a]/40 text-[#ff4d4d]">
-                                    <Mail className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#70757e]">
-                                        Direct Scribe Transmission
-                                    </p>
-                                    <p className="text-sm font-bold text-white select-all font-mono">
-                                        {CONTACT_EMAIL}
-                                    </p>
-                                </div>
+                                ))}
                             </div>
+                        </section>
+                    </div>
+                )}
 
-                            <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <button
-                                    id="copy-collab-email-btn"
-                                    onClick={handleCopyEmail}
-                                    className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-[#1c202a] hover:bg-[#282d3b] text-white text-xs font-black uppercase tracking-wider border border-[#2e3340] transition-all flex items-center justify-center gap-2"
-                                >
-                                    {copiedEmail ? (
-                                        <>
-                                            <Check className="w-3.5 h-3.5 text-[#00ff66]" />
-                                            <span className="text-[#00ff66]">Copied!</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Copy className="w-3.5 h-3.5 text-[#00d2ff]" />
-                                            <span>Copy Email</span>
-                                        </>
-                                    )}
-                                </button>
-                                <a
-                                    id="direct-mailto-collab-btn"
-                                    href={generateMailtoUrl()}
-                                    className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-[#8d1a1a] hover:bg-[#ff0000] text-white text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow"
-                                >
-                                    <Send className="w-3.5 h-3.5" />
-                                    <span>Send Raven ↗</span>
-                                </a>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-
-                <NewsletterForm />
-
-                <div className="mt-12 text-center">
-                    <button 
-                        id="return-to-forge-btn"
-                        onClick={onBack}
-                        className="bg-[#8d1a1a] text-white px-10 py-4 rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-[0_0_30px_#8d1a1a] hover:bg-[#ff0000] hover:scale-105 transition-all"
-                    >
-                        RETURN TO THE FORGE
-                    </button>
-                </div>
+                <footer className="mt-12 pt-8 border-t border-[#242830] flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono text-[#70757e] relative z-10">
+                    <div>
+                        <span>The Demon Codex</span> &bull; <span>Mod26 Creative Labs</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={onBack}
+                            className="text-[#ff4d4d] hover:underline uppercase text-[10px] font-bold"
+                        >
+                            Return to Forge
+                        </button>
+                        <span>&bull;</span>
+                        <a 
+                            href="https://www.youtube.com/@thedemoncodex" 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="text-[#00d2ff] hover:underline flex items-center gap-1"
+                        >
+                            <span>@thedemoncodex</span>
+                            <ExternalLink className="w-3 h-3" />
+                        </a>
+                    </div>
+                </footer>
             </div>
 
-            {/* Interactive Collaboration Modal */}
+            {/* Quick Inquiry / Commission Modal */}
             {isCollabModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-in">
+                <div 
+                    className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
+                    onClick={() => setIsCollabModalOpen(false)}
+                >
                     <div 
-                        className="bg-[#111318] border-2 border-[#8d1a1a]/60 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-[0_0_80px_rgba(141,26,26,0.3)] relative max-h-[92vh] overflow-y-auto"
-                        role="dialog"
-                        aria-modal="true"
+                        className="bg-[#111318] border-2 border-[#8d1a1a]/80 rounded-3xl p-6 sm:p-8 max-w-lg w-full relative shadow-[0_0_50px_rgba(141,26,26,0.5)]"
+                        onClick={(e) => e.stopPropagation()}
                     >
                         <button
-                            id="close-collab-modal-btn"
                             onClick={() => setIsCollabModalOpen(false)}
-                            className="absolute top-5 right-5 p-2 rounded-xl bg-[#1c202a] text-[#70757e] hover:text-white hover:bg-[#282d3b] transition-all"
-                            title="Close"
+                            className="absolute top-4 right-4 p-2 text-[#70757e] hover:text-white transition-colors rounded-lg bg-[#0b0c10] border border-[#242830]"
+                            title="Close Modal"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-4 h-4" />
                         </button>
 
-                        <div className="mb-6">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#8d1a1a]/20 border border-[#8d1a1a]/40 text-[#ff4d4d] text-[10px] font-black uppercase tracking-widest mb-2">
-                                <Sparkles className="w-3 h-3" />
-                                Transmit to the Arch-Scribe
+                        <div className="flex items-center gap-3 mb-4">
+                            <div 
+                                className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+                                style={{ backgroundColor: `${activeTrackObj.accentColor}25`, color: activeTrackObj.accentColor }}
+                            >
+                                {activeTrackObj.icon}
                             </div>
-                            <h3 className="text-2xl font-black text-white uppercase tracking-tight">
-                                Collaborate on the Forbidden
-                            </h3>
-                            <p className="text-xs text-[#9aa0a6] mt-1">
-                                Connect directly with Rick Modster for AI development, custom prompt architectures, video editing, or dark fantasy branding.
-                            </p>
-                        </div>
-
-                        {/* Domain Track Selection */}
-                        <div className="space-y-2 mb-6">
-                            <label className="text-[10px] font-black uppercase tracking-wider text-[#70757e] block">
-                                Select Collaboration Discipline:
-                            </label>
-                            <div className="grid grid-cols-2 gap-2">
-                                {COLLAB_TRACKS.map((t) => {
-                                    const isSelected = selectedTrackId === t.id;
-                                    return (
-                                        <button
-                                            key={t.id}
-                                            type="button"
-                                            onClick={() => setSelectedTrackId(t.id)}
-                                            className={`p-3 rounded-xl text-left border transition-all flex items-center gap-2.5 ${
-                                                isSelected 
-                                                    ? 'bg-[#1c202a] text-white shadow'
-                                                    : 'bg-[#0b0c10] border-[#242830] text-[#70757e] hover:text-white hover:border-[#383e4e]'
-                                            }`}
-                                            style={isSelected ? { borderColor: t.accentColor } : {}}
-                                        >
-                                            <span 
-                                                className="p-1.5 rounded-lg text-white text-xs"
-                                                style={{ backgroundColor: `${t.accentColor}30` }}
-                                            >
-                                                {t.icon}
-                                            </span>
-                                            <div>
-                                                <p className="text-xs font-black uppercase tracking-wide leading-tight">
-                                                    {t.title}
-                                                </p>
-                                                <p className="text-[9px] text-[#70757e]">
-                                                    {t.badge}
-                                                </p>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Project Input Fields */}
-                        <div className="space-y-4 mb-6">
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-wider text-[#70757e] block mb-1.5">
-                                    Your Name / Studio / Handle:
+                                <span className="text-[9px] font-mono uppercase tracking-widest text-[#70757e] block">
+                                    Commission Brief &bull; {activeTrackObj.badge}
+                                </span>
+                                <h3 className="text-lg font-black text-white uppercase tracking-tight">
+                                    {activeTrackObj.title} Collaboration
+                                </h3>
+                            </div>
+                        </div>
+
+                        <p className="text-xs text-[#70757e] mb-4 leading-relaxed">
+                            Send your project scope directly to Rick Modster. A pre-formatted transmission will be summoned via your mail client or email.
+                        </p>
+
+                        <div className="space-y-3 mb-5">
+                            <div>
+                                <label className="text-[10px] font-mono text-[#8d929b] uppercase tracking-wider block mb-1">
+                                    Your Name / Handle
                                 </label>
-                                <input
+                                <input 
                                     type="text"
                                     value={senderName}
                                     onChange={(e) => setSenderName(e.target.value)}
-                                    placeholder="e.g. Ashen Sovereign / Creative Director"
-                                    className="w-full bg-[#0b0c10] border border-[#242830] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#ff4d4d] transition-colors"
+                                    placeholder="e.g. Ronald, Cultist99, Studio Director"
+                                    className="w-full bg-[#0b0c10] border border-[#242830] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#ff4d4d] transition-colors"
                                 />
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-wider text-[#70757e] block mb-1.5">
-                                    Project Scope / Vision:
+                                <label className="text-[10px] font-mono text-[#8d929b] uppercase tracking-wider block mb-1">
+                                    Arcane Domain
                                 </label>
-                                <textarea
+                                <div className="grid grid-cols-2 gap-2">
+                                    {COLLAB_TRACKS.map(t => (
+                                        <button
+                                            key={t.id}
+                                            type="button"
+                                            onClick={() => setSelectedTrackId(t.id)}
+                                            className={`p-2 rounded-xl text-left border text-[11px] font-bold transition-all ${
+                                                selectedTrackId === t.id
+                                                    ? 'bg-[#1b1f2b] border-[#ff4d4d] text-white shadow-[0_0_10px_rgba(255,77,77,0.3)]'
+                                                    : 'bg-[#0b0c10] border-[#242830] text-[#70757e] hover:border-[#444]'
+                                            }`}
+                                        >
+                                            {t.title}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-mono text-[#8d929b] uppercase tracking-wider block mb-1">
+                                    Project Scope & Notes
+                                </label>
+                                <textarea 
                                     rows={3}
                                     value={projectNotes}
                                     onChange={(e) => setProjectNotes(e.target.value)}
@@ -500,87 +603,27 @@ Looking forward to connecting!
                             </div>
                         </div>
 
-                        {/* Actions */}
-                        <div className="space-y-3">
+                        <div className="flex items-center gap-3">
                             <a
-                                id="send-collab-email-btn"
                                 href={generateMailtoUrl()}
-                                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#8d1a1a] to-[#ff0000] hover:from-[#ff0000] hover:to-[#ff4d4d] text-white text-xs font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,0,0,0.3)] hover:scale-[1.01]"
+                                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-[#8d1a1a] via-[#ff0000] to-[#8d1a1a] hover:opacity-90 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,0,0,0.4)]"
                             >
-                                <Send className="w-4 h-4" />
-                                <span>Launch Email Client with Details ↗</span>
+                                <Send className="w-3.5 h-3.5" />
+                                <span>Launch Email Transmission</span>
                             </a>
-
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleCopyEmail}
-                                    className="flex-1 py-2.5 rounded-xl bg-[#1c202a] hover:bg-[#282d3b] text-white text-xs font-bold uppercase tracking-wider border border-[#2e3340] transition-all flex items-center justify-center gap-2"
-                                >
-                                    {copiedEmail ? (
-                                        <>
-                                            <Check className="w-3.5 h-3.5 text-[#00ff66]" />
-                                            <span className="text-[#00ff66]">Copied {CONTACT_EMAIL}</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Copy className="w-3.5 h-3.5 text-[#00d2ff]" />
-                                            <span>Copy Email ({CONTACT_EMAIL})</span>
-                                        </>
-                                    )}
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsCollabModalOpen(false);
-                                        handleNavigatePage(activeTrackObj.targetView);
-                                    }}
-                                    className="py-2.5 px-4 rounded-xl bg-[#161820] hover:bg-[#20242f] text-[#00d2ff] text-xs font-bold uppercase tracking-wider border border-[#00d2ff]/30 transition-all flex items-center gap-1.5"
-                                    title={`Explore ${activeTrackObj.pageName}`}
-                                >
-                                    <span>Visit {activeTrackObj.pageName}</span>
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Extra channels */}
-                        <div className="mt-6 pt-4 border-t border-[#242830] flex flex-wrap items-center justify-between text-[11px] text-[#70757e]">
-                            <span>Alternative Portals:</span>
-                            <div className="flex gap-3">
-                                <a 
-                                    href="https://www.youtube.com/@thedemoncodex"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="hover:text-[#ff4d4d] transition-colors"
-                                >
-                                    YouTube ↗
-                                </a>
-                                <a 
-                                    href="https://denomicdesigns2.gumroad.com/"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="hover:text-[#ffaa00] transition-colors"
-                                >
-                                    Gumroad ↗
-                                </a>
-                                <a 
-                                    href="https://denomic-designs-ai.streamlit.app/"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="hover:text-[#00d2ff] transition-colors"
-                                >
-                                    Streamlit ↗
-                                </a>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={handleCopyEmail}
+                                className="py-3 px-4 rounded-xl bg-[#0b0c10] border border-[#242830] hover:border-white/30 text-xs text-[#cfd3d8] transition-colors flex items-center gap-1.5"
+                                title="Copy Email Address"
+                            >
+                                {copiedEmail ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-[#70757e]" />}
+                                <span className="hidden sm:inline">{copiedEmail ? 'Copied' : 'Copy'}</span>
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
-
-            <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-[#8d1a1a]/10 rounded-full blur-[120px] pointer-events-none"></div>
-            <div className="absolute -top-20 -right-20 w-96 h-96 bg-[#00d2ff]/10 rounded-full blur-[120px] pointer-events-none"></div>
         </div>
     );
 };

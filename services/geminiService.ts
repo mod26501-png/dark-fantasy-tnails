@@ -1079,11 +1079,81 @@ export const generateSoundscape = async (description: string): Promise<string> =
   return `data:audio/pcm;base64,${base64Audio}`;
 };
 
-export const analyzeLore = async (title: string, caption: string): Promise<string> => {
-    const ai = getAiClient();
-    const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: `Analyze this relic: "${title}". Description: "${caption}". Write a 2-sentence mysterious lore snippet.`,
-    });
-    return response.text || "Lore lost to time.";
+export const generateProceduralLoreFallback = (
+    title: string, 
+    caption?: string, 
+    archetype?: string, 
+    tags: string[] = []
+): string => {
+    const cleanTitle = title?.trim() || "The Nameless Relic";
+    const cleanArchetype = archetype?.trim() || "Abyssal Sovereign";
+    const desc = caption?.trim() || "forged within the obsidian furnaces beneath the Nethergate";
+
+    const loreTemplates = [
+        `Forged during the Obsidian Eclipse by the ${cleanArchetype}, ${cleanTitle} was consecrated to channel forbidden resonance. It is chronicled that whoever speaks its true inscription awakens ${desc.toLowerCase().replace(/^[a-z]/, (c) => c.toLowerCase())}.`,
+        `Recovered from the drowned ossuaries beneath the Nethergate, ${cleanTitle} vibrates with an eternal 432Hz occult hum. Ancient grimoires warn that its bearer commands the domain of ${cleanArchetype}, but must offer devotion to the Abyssal flame.`,
+        `Inscribed into the primal canon of the Demon Codex, ${cleanTitle} stands as an immutable covenant of the ${cleanArchetype}. Those who dare hold it witness visions of the abyssal void, binding their soul to its eternal dark liturgy.`,
+        `Legend chronicles that ${cleanTitle} was sealed in lead and living scarlet embers before the First Sundering. When held toward the blackened sky, its runes bleed spectral light, manifesting ${desc.toLowerCase()}.`
+    ];
+
+    let hash = 0;
+    for (let i = 0; i < cleanTitle.length; i++) {
+        hash = (hash << 5) - hash + cleanTitle.charCodeAt(i);
+        hash |= 0;
+    }
+    const index = Math.abs(hash) % loreTemplates.length;
+    return loreTemplates[index];
+};
+
+export const analyzeLore = async (
+    title: string, 
+    caption?: string, 
+    archetype?: string, 
+    tags?: string[]
+): Promise<string> => {
+    const cleanTitle = title?.trim() || "Untitled Relic";
+    const cleanCaption = caption?.trim() || "";
+
+    // 1. Try hardened server-side lore synthesis first
+    try {
+        const res = await fetch('/api/gemini/analyze-lore', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                title: cleanTitle, 
+                caption: cleanCaption, 
+                archetype: archetype || 'Occult Relic', 
+                tags: tags || [] 
+            })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.lore && typeof data.lore === 'string' && data.lore.trim().length > 0) {
+                return data.lore.trim();
+            }
+        }
+    } catch (serverErr) {
+        console.warn("Server lore synthesis endpoint unavailable, trying client fallback:", serverErr);
+    }
+
+    // 2. Try direct client SDK if API key is active
+    const apiKey = getApiKey();
+    if (apiKey) {
+        try {
+            const ai = getAiClient();
+            const response = await ai.models.generateContent({
+                model: 'gemini-3.8-flash',
+                contents: `Analyze this dark fantasy relic: "${cleanTitle}". Archetype: "${archetype || 'Occult Relic'}". Description: "${cleanCaption}". Tags: "${(tags || []).join(', ')}". Write an evocative, mysterious 2-sentence lore snippet revealing its mythic history, curse, and arcane purpose. Return plain text only.`,
+            });
+            const text = response.text?.trim();
+            if (text && text.length > 0) {
+                return text.replace(/^["']|["']$/g, '').trim();
+            }
+        } catch (directErr) {
+            console.warn("Direct client lore synthesis warning:", directErr);
+        }
+    }
+
+    // 3. Resilient procedural fallback: guarantees evocative occult lore so buttons never hang or fail!
+    return generateProceduralLoreFallback(cleanTitle, cleanCaption, archetype, tags);
 };

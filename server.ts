@@ -944,6 +944,42 @@ async function startServer() {
     }
   });
 
+  // Manifest & Analyze Relic Occult Lore Endpoint
+  app.post("/api/gemini/analyze-lore", async (req, res) => {
+    const { title, caption, archetype, tags } = req.body;
+    if (!title) {
+      return res.status(400).json({ error: "Relic title is required" });
+    }
+
+    const ai = getGeminiClient();
+    if (!ai) {
+      return res.status(500).json({ error: "Gemini client not initialized on server" });
+    }
+
+    const model = "gemini-3.8-flash";
+    try {
+      const systemInstruction = "You are the Ancient Lorekeeper of The Demon Codex. Given a dark fantasy relic title, description, archetype, and tags, write a haunting, poetic 2-sentence occult lore inscription revealing its mythic origin, forbidden resonance, and the ritual needed to awaken its dormant essence. Avoid explicit gore; focus on gothic grandeur, cosmic dread, ancient pacts, and tactile arcane metallurgy. Return plain text only without quotes or markdown headers.";
+
+      const response = await ai.models.generateContent({
+        model,
+        contents: `Analyze and reveal the forbidden lore for this relic: "${title}"\nArchetype: "${archetype || 'Occult Relic'}"\nDescription: "${caption || ''}"\nTags: "${(tags || []).join(', ')}"`,
+        config: {
+          systemInstruction,
+        }
+      });
+
+      const raw = response.text?.trim() || "";
+      const lore = raw.replace(/^["']|["']$/g, '').trim();
+      return res.json({ 
+        success: true, 
+        lore: lore || `Inscribed into the abyssal registry of the Demon Codex: ${title} channels the ancient resonance of the ${archetype || 'Sanctum'}.`
+      });
+    } catch (err: any) {
+      console.warn("Analyze lore server error:", err);
+      return res.status(500).json({ error: err?.message || "Lore synthesis ritual failed" });
+    }
+  });
+
   // Angelic Agent: Seraphic Prompt Transmutation Endpoint
   app.post("/api/gemini/transmute-prompt", async (req, res) => {
     const { concept, mode = "celestial" } = req.body;

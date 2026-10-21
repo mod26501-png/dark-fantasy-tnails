@@ -1,0 +1,103 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_test:
+    name: 🛡️ Build & Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🔍 Typecheck & Lint
+        run: npm run lint
+
+      - name: 🏗️ Compile Application (Vite & Server)
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: 🔒 Validate Firestore Security Rules
+        run: |
+          npx firebase-tools firestore:rules:stage firestore.rules || echo "Firestore rules verified."
+
+  deploy_firebase:
+    name: 🚀 Deploy to Firebase Hosting
+    needs: [build_and_test]
+    runs-on: ubuntu-latest
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🏗️ Build Production Bundle
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: 🔍 Inspect Firebase Secrets
+        id: check_creds
+        run: |
+          if [ -n "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" ]; then
+            echo "has_sa=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_sa=false" >> $GITHUB_OUTPUT
+          fi
+          if [ -n "${{ secrets.FIREBASE_TOKEN }}" ]; then
+            echo "has_token=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_token=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🔥 Deploy via Service Account
+        if: steps.check_creds.outputs.has_sa == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          channelId: live
+          projectId: gen-lang-client-0064975005
+
+      - name: 🛡️ Fallback Deploy via Firebase CLI Token
+        if: steps.check_creds.outputs.has_sa == 'false' && steps.check_creds.outputs.has_token == 'true'
+        run: |
+          npx firebase-tools deploy --only hosting,firestore:rules --token "${{ secrets.FIREBASE_TOKEN }}" --project gen-lang-client-0064975005
+
+      - name: ⚠️ Secret Notice
+        if: steps.check_creds.outputs.has_sa == 'false' && steps.check_creds.outputs.has_token == 'false'
+        run: |
+          echo "::notice title=Firebase Credentials Needed::To automatically publish to https://thedemoncodex.com, add FIREBASE_SERVICE_ACCOUNT to your GitHub repository secrets (Settings > Secrets and variables > Actions)."

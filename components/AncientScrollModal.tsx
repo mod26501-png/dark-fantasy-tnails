@@ -68,7 +68,8 @@ export const AncientScrollModal: React.FC<AncientScrollModalProps> = ({
         allowTaint: true,
         backgroundColor: '#120c08',
       });
-      const blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
+      if (!blob) throw new Error('Canvas render failed');
       const safeTitle = (data.mainTitle || 'Ancient_Scroll').replace(/[^a-zA-Z0-9_-]/g, '_');
       const result = await uploadFileToDrive(`${safeTitle}_Scribe_Scroll.png`, blob);
       setProgressMsg('✓ Scribe Image Saved to Google Drive!');

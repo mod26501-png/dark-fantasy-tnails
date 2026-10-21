@@ -152,9 +152,9 @@ export async function preloadImageAsBase64(url: string, maxDim = 900): Promise<s
     if (res.ok) {
       const blob = await res.blob();
       if (blob.type.startsWith('image/') && !blob.type.includes('svg')) {
-        return await new Promise((resolve, reject) => {
+        return await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
+          reader.onloadend = () => resolve(reader.result as string);
           reader.onerror = reject;
           reader.readAsDataURL(blob);
         });

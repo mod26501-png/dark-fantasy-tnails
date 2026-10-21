@@ -718,18 +718,18 @@ export const CinematicLanding: React.FC<CinematicLandingProps> = ({
           <div 
             onClick={() => {
               audioFX.playRuneChime();
-              onNavigate('about');
+              onNavigate('gallery');
             }}
-            className="p-5 rounded-2xl bg-[#111318] border border-[#242830] hover:border-[#ff4d4d] cursor-pointer hover:shadow-[0_0_25px_rgba(255,77,77,0.25)] hover:-translate-y-1 transition-all group"
+            className="p-5 rounded-2xl bg-[#111318] border border-[#242830] hover:border-[#00d2ff] cursor-pointer hover:shadow-[0_0_25px_rgba(0,210,255,0.25)] hover:-translate-y-1 transition-all group"
           >
-            <div className="w-10 h-10 rounded-xl bg-[#ff4d4d]/15 flex items-center justify-center text-xl mb-3 text-[#ff4d4d]">
-              ✧
+            <div className="w-10 h-10 rounded-xl bg-[#00d2ff]/15 flex items-center justify-center text-xl mb-3 text-[#00d2ff]">
+              ◈
             </div>
-            <h4 className="text-sm font-black text-white uppercase tracking-tight group-hover:text-[#ff4d4d] transition-colors">
-              The Arch-Scribe (About)
+            <h4 className="text-sm font-black text-white uppercase tracking-tight group-hover:text-[#00d2ff] transition-colors">
+              The Abyssal Archive
             </h4>
             <p className="text-xs text-[#70757e] mt-1.5 leading-relaxed">
-              Discover the lore, system specs, Outlier AI background, and creator of The Demon Codex.
+              Explore the permanent reliquary of community relics, 3D holographic foils, and dark seal inscriptions.
             </p>
           </div>
         </div>

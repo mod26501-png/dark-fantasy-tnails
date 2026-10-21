@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, FileJson, Check } from 'lucide-react';
-import { analyzeLore, generateRelicVideo, generateSoundscape, generateImageWithDiagnostics, FAILED_IMAGE_PLACEHOLDER } from '../services/geminiService';
+import { analyzeLore, generateProceduralLoreFallback, generateRelicVideo, generateSoundscape, generateImageWithDiagnostics, FAILED_IMAGE_PLACEHOLDER } from '../services/geminiService';
 import { saveToCodex, removeFromCodex } from '../services/storageService';
 import { backupSeriesToDrive, uploadFileToDrive, urlToBlob } from '../services/driveService';
 import { ImageDiagnosticOverlay } from './ImageDiagnosticOverlay';
@@ -37,7 +37,8 @@ const Card: React.FC<{
   archetype: string; 
   onImageClick: (src: string) => void;
   onCardUpdate?: (updatedCard: PromptCardType) => void;
-}> = ({ card, archetype, onImageClick, onCardUpdate }) => {
+  onOpenScribe?: (cardToScribe: PromptCardType) => void;
+}> = ({ card, archetype, onImageClick, onCardUpdate, onOpenScribe }) => {
   const [currentCard, setCurrentCard] = useState<PromptCardType>(card);
   const [imgLoadError, setImgLoadError] = useState(false);
   const [isRetryingImage, setIsRetryingImage] = useState(false);
@@ -227,10 +228,13 @@ const Card: React.FC<{
     if (isAnalyzing || lore) return;
     setIsAnalyzing(true);
     try {
-      const result = await analyzeLore(currentCard.title, currentCard.caption);
+      const desc = currentCard.caption || currentCard.description || currentCard.prompt || '';
+      const result = await analyzeLore(currentCard.title, desc, archetype, currentCard.tags);
       setLore(result);
     } catch (err) {
-      console.error(err);
+      console.error("Lore revelation error:", err);
+      const fallback = generateProceduralLoreFallback(currentCard.title, currentCard.caption, archetype, currentCard.tags);
+      setLore(fallback);
     } finally {
       setIsAnalyzing(false);
     }
@@ -406,8 +410,28 @@ const Card: React.FC<{
         </div>
         
         <div className="actions flex gap-2 flex-wrap mt-2 no-print">
-          <button onClick={handleLore} className="btn flex-1 bg-transparent border border-[#242830] text-[#e8e6e3] px-4 py-2 rounded-lg text-xs font-semibold hover:bg-[#242830] transition-colors">
-            {isAnalyzing ? 'Decoding...' : lore ? 'Lore Bound' : 'Reveal Lore'}
+          <button 
+            id={`reveal-lore-btn-${(currentCard.title || 'relic').replace(/\s+/g, '-').toLowerCase()}`}
+            onClick={handleLore} 
+            className="btn flex-1 bg-transparent border border-[#242830] text-[#e8e6e3] px-4 py-2 rounded-lg text-xs font-semibold hover:bg-[#242830] transition-colors flex items-center justify-center gap-1.5"
+            title="Decode and reveal ancient dark fantasy lore for this relic"
+          >
+            {isAnalyzing ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-[#00d2ff] animate-ping" />
+                <span>Decoding Lore...</span>
+              </>
+            ) : lore ? (
+              <>
+                <span className="text-[#00d2ff]">✓</span>
+                <span className="text-[#00d2ff]">Lore Bound</span>
+              </>
+            ) : (
+              <>
+                <span>📜</span>
+                <span>Reveal Lore</span>
+              </>
+            )}
           </button>
           <button onClick={handleSound} className="btn bg-transparent border border-[#242830] text-[#70757e] p-2 rounded-lg hover:text-[#00d2ff] hover:border-[#00d2ff]/40 transition-all">
             {isGeneratingAudio ? '...' : '🔊'}

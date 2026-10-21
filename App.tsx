@@ -110,6 +110,7 @@ const App: React.FC = () => {
     const [loadingMessage, setLoadingMessage] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
     const [activeModal, setActiveModal] = useState<'privacy' | 'terms' | null>(null);
+    const [aboutTab, setAboutTab] = useState<'codex' | 'scribe'>('codex');
     
     const [aspectRatio, setAspectRatio] = useState<'1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '9:16' | '16:9' | '21:9'>('16:9');
     const [imageSize, setImageSize] = useState<'1K' | '2K' | '4K'>('1K');
@@ -576,8 +577,9 @@ const App: React.FC = () => {
         audioFX.playRuneChime();
         setView('gallery');
     };
-    const openAbout = () => {
+    const openAbout = (tab: 'codex' | 'scribe' = 'codex') => {
         audioFX.playRuneChime();
+        setAboutTab(tab);
         setView('about');
     };
 
@@ -805,15 +807,16 @@ const App: React.FC = () => {
                     </button>
 
                     <button 
-                        onClick={() => { audioFX.playRuneChime(); setView('about'); }}
+                        id="nav-about-codex-btn"
+                        onClick={() => openAbout('codex')}
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-300 flex items-center gap-1.5 border ${
-                            view === 'about' 
+                            view === 'about' && aboutTab === 'codex'
                                 ? 'bg-[#ff4d4d] text-white border-[#ff4d4d] shadow-[0_0_22px_rgba(255,77,77,0.7)] font-bold' 
                                 : 'border-transparent text-[#cfd3d8] hover:text-[#ff4d4d] hover:border-[#ff4d4d]/70 hover:bg-[#ff4d4d]/15 hover:shadow-[0_0_22px_rgba(255,77,77,0.65)] hover:scale-105 active:scale-95'
                         }`}
                         title="About The Demon Codex & System Specifications"
                     >
-                        <span className={view === 'about' ? 'text-white' : 'text-[#ff4d4d] drop-shadow-[0_0_8px_rgba(255,77,77,0.8)]'}>✧</span>
+                        <span className={view === 'about' && aboutTab === 'codex' ? 'text-white' : 'text-[#ff4d4d] drop-shadow-[0_0_8px_rgba(255,77,77,0.8)]'}>✧</span>
                         <span>About</span>
                     </button>
                 </nav>
@@ -1050,16 +1053,17 @@ const App: React.FC = () => {
                 {/* Right utilities */}
                 <div className="flex items-center gap-3 flex-shrink-0">
                     <button 
-                        onClick={openAbout}
+                        id="ribbon-the-scribe-btn"
+                        onClick={() => openAbout('scribe')}
                         className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 border whitespace-nowrap ${
-                            view === 'about' 
-                                ? 'bg-[#ff4d4d] text-white border-[#ff4d4d] shadow-[0_0_15px_rgba(255,77,77,0.4)]' 
+                            view === 'about' && aboutTab === 'scribe'
+                                ? 'bg-[#8d1a1a] text-white border-[#ff4d4d] shadow-[0_0_15px_rgba(255,77,77,0.4)] font-bold' 
                                 : 'bg-[#111318]/80 border-[#242830] text-[#70757e] hover:text-[#ff4d4d] hover:border-[#ff4d4d]/40'
                         }`}
-                        title="About The Demon Codex & System Specifications"
+                        title="The Arch-Scribe (Rick Modster) & Creator Commissions"
                     >
-                        <span>✧</span>
-                        <span>About / Scribe</span>
+                        <span>✍</span>
+                        <span>The Scribe</span>
                     </button>
 
                     <button
@@ -1185,6 +1189,7 @@ const App: React.FC = () => {
 
                 {!isLoading && view === 'about' && (
                     <AboutMe 
+                        initialTab={aboutTab}
                         onBack={() => setView('forge')} 
                         onNavigate={(targetView) => {
                             audioFX.playRuneChime();
@@ -1394,7 +1399,7 @@ const App: React.FC = () => {
                             id="footer-collab-btn"
                             onClick={() => {
                                 audioFX.playRuneChime();
-                                setView('about');
+                                openAbout('scribe');
                             }} 
                             className="bg-[#111318] border border-[#ff4d4d]/60 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] text-[#ff4d4d] hover:bg-[#8d1a1a] hover:text-white transition-all shadow inline-flex items-center gap-1.5"
                             title="Collaborate on AI, Video, Design & Web Projects"
