@@ -23,6 +23,30 @@ export interface YouTubeChannelInfo {
 
 export const FALLBACK_CHRONICLES: YouTubeVideo[] = [
     {
+        id: 'i4OibG0IVK8',
+        title: '👻 DEMON CODEX: Epic Ghostbusters Style Metal Anthem 🔥🔥',
+        description: 'Epic Ghostbusters Style Metal Anthem for The Demon Codex. Powered by dark fantasy metal alchemy and visual lore.',
+        publishedAt: '2026-10-15T00:00:00Z',
+        category: 'lore',
+        thumbnailUrl: 'https://i.ytimg.com/vi/i4OibG0IVK8/hqdefault.jpg',
+        duration: '3:15',
+        tags: ['#DemonCodex', '#GhostbustersMetal', '#DarkFantasy', '#OccultMetal'],
+        viewsEstimate: '★ Sovereign Anthem',
+        channelTitle: '@TheDemonCodex'
+    },
+    {
+        id: 'YRt73yl2G44',
+        title: '😈 The Codex Has Awakened | Enter the AI Dark Fantasy Forge 🔥 #thedemoncodex',
+        description: 'Enter the AI Dark Fantasy Forge and awaken ancient relics. Official YouTube Short for @TheDemonCodex.',
+        publishedAt: '2026-10-18T00:00:00Z',
+        category: 'shorts',
+        thumbnailUrl: 'https://i.ytimg.com/vi/YRt73yl2G44/hqdefault.jpg',
+        duration: '0:45',
+        tags: ['#TheDemonCodex', '#Shorts', '#DarkFantasy', '#RelicForge'],
+        viewsEstimate: '★ Official Short',
+        channelTitle: '@TheDemonCodex'
+    },
+    {
         id: 'XLSvy1jHihE',
         title: 'Hail to the Crown',
         description: 'Featured masterwork occult anthem and dark fantasy visual chronicle: Hail to the Crown. Powered by The Demon Codex audio-visual alchemy.',

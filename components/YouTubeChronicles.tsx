@@ -314,7 +314,7 @@ Respond in strictly valid JSON format matching this exact schema:
                                 <span className="w-2.5 h-2.5 rounded-full bg-[#ff0000] animate-ping"></span>
                                 <h4 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-1.5">
                                     <span>📺 Occult Transmission Theater</span>
-                                    {selectedFeatured.id === 'XLSvy1jHihE' && (
+                                    {((selectedFeatured.id === 'i4OibG0IVK8' || selectedFeatured.id === 'XLSvy1jHihE') || (selectedFeatured.viewsEstimate && selectedFeatured.viewsEstimate.includes('Anthem'))) && (
                                         <span className="bg-gradient-to-r from-[#ffaa00] to-[#ff0000] text-black text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider ml-2">
                                             👑 FEATURED SOVEREIGN ANTHEM
                                         </span>
@@ -374,7 +374,7 @@ Respond in strictly valid JSON format matching this exact schema:
 
                                     <div className="absolute bottom-4 left-4 right-4 z-10 pointer-events-none">
                                         <div className="flex items-center gap-2 mb-1">
-                                            {selectedFeatured.id === 'XLSvy1jHihE' && (
+                                            {((selectedFeatured.id === 'i4OibG0IVK8' || selectedFeatured.id === 'XLSvy1jHihE') || (selectedFeatured.viewsEstimate && selectedFeatured.viewsEstimate.includes('Anthem'))) && (
                                                 <span className="bg-[#ffaa00] text-black text-[9px] font-black px-2 py-0.5 rounded uppercase">
                                                     👑 Featured
                                                 </span>
@@ -545,7 +545,7 @@ Respond in strictly valid JSON format matching this exact schema:
 
                                             <div className="flex flex-col justify-between overflow-hidden flex-1">
                                                 <div className="flex flex-col">
-                                                    {video.id === 'XLSvy1jHihE' && (
+                                                    {((video.id === 'i4OibG0IVK8' || video.id === 'XLSvy1jHihE') || (video.viewsEstimate && video.viewsEstimate.includes('Anthem'))) && (
                                                         <span className="text-[8px] font-black uppercase text-[#ffaa00] flex items-center gap-1 mb-0.5">
                                                             <span>👑</span> FEATURED ANTHEM
                                                         </span>
